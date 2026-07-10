@@ -1042,7 +1042,7 @@
           <div id="zone-asteroides-top" style="position: absolute; top: 10%; width: 100%; height: 30%;"></div>
           <div id="zone-asteroides-bottom" style="position: absolute; bottom: 15%; width: 100%; height: 30%;"></div>
           
-          <img src="images/fusee/fusee_interstellaire.png" id="vaisseau-interstellaire" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; filter: drop-shadow(0 0 20px var(--accent)); z-index: 100;">
+          <img src="images/fusee/fusee_interstellaire.png" id="vaisseau-interstellaire" draggable="false" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; filter: drop-shadow(0 0 20px var(--accent)); z-index: 100; pointer-events: none;">
           
           <div class="jauge-lumiere-bg" id="barre-lumiere">
             <div class="jauge-lumiere-fill" id="remplissage-lumiere"></div>
@@ -1203,7 +1203,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const MODE_DEBUG = true;
   
-  // 🌟 CONDITION COMMANDE DEBUG : Sélection manuelle de l'heure du ciel au démarrage
+  /*// 🌟 CONDITION COMMANDE DEBUG : Sélection manuelle de l'heure du ciel au démarrage
   if (MODE_DEBUG) {
     const choixHeure = prompt("🛠️ MODE DEBUG ACTIVÉ\n\nChoisissez une heure réelle simulée pour tester la couleur du ciel (de 0 à 23) :", new Date().getHours());
     
@@ -1216,7 +1216,7 @@ window.addEventListener('DOMContentLoaded', () => {
       };
       console.log(`[DEBUG] L'heure réelle du système est forcée à : ${heureSaisie}h00`);
     }
-  }
+  }*/
 
   // 🌟 Date et heure fixes précises de l'envoi de la lettre originale (Année, Mois-1, Jour, Heure, Minute, Seconde)
   // Remarque : En JavaScript, les mois commencent à 0 (0 = Janvier, 1 = Février, 9 = Octobre, etc.)
@@ -1390,6 +1390,8 @@ window.addEventListener('DOMContentLoaded', () => {
   let valeursTesteesAngle = [];
 
   let decalageHeureReelleMs = 0;
+  const SECRET_KEY_SAVE = "ChaCosmicVaultKey2026"; // Clé pour générer le hash anti-triche
+  let intervalleSauvegardeAuto = null;
 
   // 🌟 NOUVELLE FONCTION CENTRALE POUR TOUT LE SCRIPT
   function obtenirDateFrancaiseReelle() {
@@ -4870,7 +4872,7 @@ let controlesEspaceConfigures = false;
     setInterval(actualiserCompteurFin, 1000);
 
     // ==========================================
-    // 🌟 GESTION DES INTERACTIONS SECRÈTES DE FIN (POLICE CHA)
+    // 🌟 GESTION DES INTERACTIONS SECRÈTES DE FIN
     // ==========================================
     const btnSecret = document.getElementById('btn-secret-pas-fin');
     const ecranQuestion = document.getElementById('ecran-question-secrete');
@@ -4905,19 +4907,46 @@ let controlesEspaceConfigures = false;
         if (inputReponse.value.trim().toLowerCase() === 'estelle') {
           ecranUltime.style.display = 'flex';
           
-          // 🌟 AJOUT DU BOUTON DE RETOUR SUR L'ÉCRAN ULTIME
-          if (!document.getElementById('btn-retour-ultime')) {
-            const btnRetourUltime = document.createElement('button');
-            btnRetourUltime.id = 'btn-retour-ultime';
-            btnRetourUltime.textContent = '◀ Retour';
-            btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002;";
-            
-            btnRetourUltime.addEventListener('click', () => {
-              ecranUltime.style.display = 'none';
-            });
-            
-            ecranUltime.appendChild(btnRetourUltime);
-          }
+          // Nettoyage des anciens boutons pour éviter les doublons au ré-accès
+          const vieuxRetour = document.getElementById('btn-retour-ultime');
+          const vieuxReset = document.getElementById('btn-reset-ultime');
+          if (vieuxRetour) vieuxRetour.remove();
+          if (vieuxReset) vieuxReset.remove();
+
+          // 🌟 BOUTON 1 : RETOUR AVANT LA FIN (REPRENDRE LA NAVIGATION)
+          const btnRetourUltime = document.createElement('button');
+          btnRetourUltime.id = 'btn-retour-ultime';
+          btnRetourUltime.textContent = '◀ Reprendre la navigation';
+          btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #2a2c2f; color: white; border: 1px solid #3d4146; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; transition: background 0.2s;";
+          btnRetourUltime.onmouseenter = () => btnRetourUltime.style.background = '#34373b';
+          btnRetourUltime.onmouseleave = () => btnRetourUltime.style.background = '#2a2c2f';
+          
+          btnRetourUltime.addEventListener('click', () => {
+            ecranUltime.style.display = 'none';
+            ecranQuestion.style.display = 'none';
+            ecranBlanc.style.opacity = '0';
+            ecranBlanc.style.pointerEvents = 'none';
+          });
+          
+          // 🌟 BOUTON 2 : RECOMMENCER LA PARTIE (RESET TOTAL DE LA SAUVEGARDE)
+          const btnResetUltime = document.createElement('button');
+          btnResetUltime.id = 'btn-reset-ultime';
+          btnResetUltime.textContent = '🔄 Recommencer une ligne temporelle';
+          btnResetUltime.style.cssText = "position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 12px 25px; background: #ff4d4d; color: #121315; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; box-shadow: 0 4px 15px rgba(255, 77, 77, 0.4); transition: transform 0.1s;";
+          btnResetUltime.onmouseenter = () => btnResetUltime.style.transform = 'translateX(-50%) scale(1.03)';
+          btnResetUltime.onmouseleave = () => btnResetUltime.style.transform = 'translateX(-50%) scale(1)';
+
+          btnResetUltime.addEventListener('click', () => {
+            if (confirm("⚠️ Êtes-vous sûr de vouloir effacer définitivement vos fichiers de données et réinitialiser l'Univers ?")) {
+              clearInterval(intervalleSauvegardeAuto);
+              localStorage.removeItem('cha_save_data');
+              localStorage.removeItem('cha_save_hash');
+              window.location.reload(); // Relance le jeu à zéro
+            }
+          });
+          
+          ecranUltime.appendChild(btnRetourUltime);
+          ecranUltime.appendChild(btnResetUltime);
         } else {
           inputReponse.style.borderColor = '#ff4d4d';
           inputReponse.classList.add('tremblement-erreur');
@@ -4931,7 +4960,8 @@ let controlesEspaceConfigures = false;
       inputReponse.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') verifierReponse();
       });
-    }}
+    }
+  }
 
   const btnSwitch = document.getElementById('btn-switch-fusee');
   if (btnSwitch) {
@@ -5052,6 +5082,169 @@ let controlesEspaceConfigures = false;
       });
   }
 
+  // 🔒 Fonction de hachage anti-triche ultra-légère
+  function genererHashSauvegarde(chaine) {
+    let hash = 0;
+    const chaineComplete = chaine + SECRET_KEY_SAVE;
+    for (let i = 0; i < chaineComplete.length; i++) {
+      const char = chaineComplete.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
+  }
+
+  // 💾 Fonction d'enregistrement global
+  function sauvegarderProgression() {
+    const donneesDuJeu = {
+      ressources,
+      clics,
+      multiplicateursPassifs,
+      nbBucherons,
+      nbMineurs,
+      nbCentrales,
+      nbEtudiants,
+      nbAstronomes,
+      upgradePierreAchetee,
+      upgradeTradAchetee,
+      upgradeObservAchetee,
+      planCentraleAchete,
+      upgradesActivees,
+      techActivees,
+      etatFusee,
+      dateVirtuelle,
+      joursVirtuelsEcoules,
+      nbSatellites,
+      etapeDyson,
+      colonisation,
+      happyHourAchete,
+      etoileDecouverte,
+      plansInterstellairesDebloques,
+      elementsInterstellaires,
+      lasersVoyage,
+      upgradesVoyage,
+      vitesseLumierePct,
+      voyageDemarre,
+      lvlVoyageOpti,
+      lvlVoyageDeflecteur,
+      lvlVoyageProcesseur,
+      lvlVoyageMoissonneurVide,
+      nbLasersManuels: window.nbLasersManuels || 0,
+      modeFuseeActuel,
+      cielMystereActif
+    };
+
+    const chaineDonnees = JSON.stringify(donneesDuJeu);
+    const hashSecurite = genererHashSauvegarde(chaineDonnees);
+
+    localStorage.setItem('cha_save_data', chaineDonnees);
+    localStorage.setItem('cha_save_hash', hashSecurite);
+    console.log("[SAUVEGARDE] Partie enregistrée automatiquement et sécurisée.");
+  }
+
+  // 📂 Fonction de chargement au démarrage
+  function chargerProgression() {
+    const chaineDonnees = localStorage.getItem('cha_save_data');
+    const hashEnregistre = localStorage.getItem('cha_save_hash');
+
+    if (!chaineDonnees || !hashEnregistre) return;
+
+    // Vérification anti-triche
+    if (genererHashSauvegarde(chaineDonnees) !== hashEnregistre) {
+      console.warn("[SÉCURITÉ] Sauvegarde corrompue ou modifiée manuellement ! Réinitialisation.");
+      localStorage.removeItem('cha_save_data');
+      localStorage.removeItem('cha_save_hash');
+      return;
+    }
+
+    try {
+      const charge = JSON.parse(chaineDonnees);
+      
+      // Restauration des variables d'état
+      ressources = charge.ressources;
+      clics = charge.clics;
+      multiplicateursPassifs = charge.multiplicateursPassifs;
+      nbBucherons = charge.nbBucherons;
+      nbMineurs = charge.nbMineurs;
+      nbCentrales = charge.nbCentrales;
+      nbEtudiants = charge.nbEtudiants;
+      nbAstronomes = charge.nbAstronomes;
+      upgradePierreAchetee = charge.upgradePierreAchetee;
+      upgradeTradAchetee = charge.upgradeTradAchetee;
+      upgradeObservAchetee = charge.upgradeObservAchetee;
+      planCentraleAchete = charge.planCentraleAchete;
+      upgradesActivees = charge.upgradesActivees;
+      techActivees = charge.techActivees;
+      etatFusee = charge.etatFusee;
+      dateVirtuelle = charge.dateVirtuelle;
+      joursVirtuelsEcoules = charge.joursVirtuelsEcoules;
+      nbSatellites = charge.nbSatellites;
+      etapeDyson = charge.etapeDyson || 0;
+      colonisation = charge.colonisation;
+      happyHourAchete = charge.happyHourAchete;
+      etoileDecouverte = charge.etoileDecouverte;
+      plansInterstellairesDebloques = charge.plansInterstellairesDebloques;
+      elementsInterstellaires = charge.elementsInterstellaires;
+      lasersVoyage = charge.lasersVoyage;
+      upgradesVoyage = charge.upgradesVoyage;
+      vitesseLumierePct = charge.vitesseLumierePct;
+      voyageDemarre = charge.voyageDemarre;
+      lvlVoyageOpti = charge.lvlVoyageOpti || 0;
+      lvlVoyageDeflecteur = charge.lvlVoyageDeflecteur || 0;
+      lvlVoyageProcesseur = charge.lvlVoyageProcesseur || 0;
+      lvlVoyageMoissonneurVide = charge.lvlVoyageMoissonneurVide || 0;
+      window.nbLasersManuels = charge.nbLasersManuels || 0;
+      modeFuseeActuel = charge.modeFuseeActuel || "normale";
+      cielMystereActif = charge.cielMystereActif || false;
+
+      // Reconstitution visuelle de l'interface et des éléments débloqués
+      if (upgradePierreAchetee) {
+        document.getElementById('bloc-pierre').style.display = 'flex';
+        document.getElementById('zone-pierre').style.display = 'flex';
+      }
+      if (upgradeTradAchetee) document.getElementById('tab-trad').style.display = 'block';
+      if (upgradeObservAchetee) document.getElementById('tab-observ').style.display = 'block';
+      if (planCentraleAchete) {
+        document.getElementById('bloc-energie').style.display = 'flex';
+        document.getElementById('zone-energie').style.display = 'flex';
+      }
+      if (techActivees.fusee) document.getElementById('tab-fusee').style.display = 'block';
+      if (etatFusee.lancee) document.getElementById('tab-espace').style.display = 'block';
+      if (voyageDemarre) {
+        document.getElementById('tab-voyage').style.display = 'block';
+        genererEtoilesVitesse();
+      }
+
+      // Re-générer les ouvriers sur la planète
+      document.getElementById('chats-conteneur-bois').innerHTML = "";
+      document.getElementById('chats-conteneur-pierre').innerHTML = "";
+      document.getElementById('chats-conteneur-energie').innerHTML = "";
+      for (let i = 1; i <= nbBucherons; i++) ajouterUnChatOuvrierSurPlanete('bois', i, 'images/minichat-bucheron.png');
+      for (let i = 1; i <= nbMineurs; i++) ajouterUnChatOuvrierSurPlanete('pierre', i, 'images/minichat-mineur.png');
+      for (let i = 1; i <= nbCentrales; i++) ajouterUnChatOuvrierSurPlanete('energie', i, 'images/minichat-elec.png');
+
+      // Re-générer les satellites visuels et drapeaux
+      document.getElementById('cont-pivots-satellites').innerHTML = "";
+      for (let i = 1; i <= nbSatellites; i++) ajouterUnSatelliteGraphique(i);
+      
+      for (let p in colonisation) {
+        if (colonisation[p].drapeauPose) creerDrapeauVisuelSurPlanete(p);
+      }
+
+      // Recalage visuel de la Sphère de Dyson
+      const imgSoleil = document.getElementById('img-soleil');
+      if (imgSoleil && etapeDyson > 0) {
+        imgSoleil.src = `images/espace/soleil_etape${etapeDyson}.png`;
+        imgSoleil.style.filter = etapeDyson === 4 ? "drop-shadow(0 0 25px #7CFC6E) drop-shadow(0 0 50px #000)" : `drop-shadow(0 0 ${10 + etapeDyson * 5}px var(--accent))`;
+      }
+
+      console.log("[CHARGEMENT] Progression récupérée avec succès !");
+    } catch (e) {
+      console.error("Erreur lors du traitement de la sauvegarde", e);
+    }
+  }
+
+
   // Appeler la fonction dès que le script est prêt
   synchroniserVraieHeureInternet();
 
@@ -5060,16 +5253,20 @@ let controlesEspaceConfigures = false;
   initialiserBoutique();
   initialiserEvenementsLivre();
   initialiserControlesEspace();
+  chargerProgression();
   mettreAjourInterface();
   mettreAjourCouleurCiel();
   genererNouvellesCiblesFusee();
   genererEtoilesEspaceDOM();
   requestAnimationFrame(animerSystemeSolaireFluide);
+
   setTimeout(() => {
     mettreAjourCouleurCiel();
   }, 50);
-  
 
+  if (intervalleSauvegardeAuto) clearInterval(intervalleSauvegardeAuto);
+  intervalleSauvegardeAuto = setInterval(sauvegarderProgression, 60000);
+  
 });
 </script>
 
