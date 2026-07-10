@@ -2350,11 +2350,12 @@ function mettreAjourInterface() {
       if (bVoyage) bVoyage.style.display = (ongletActif === 'Voyage Final') ? 'block' : 'none';
     }
 
-    // === 6. ACTUALISATION DU CATALOGUE BOUTIQUE (CATALOGUE_BOUTIQUE.forEach) ===
+    // === 6. ACTUALISATION DU CATALOGUE BOUTIQUE (Avec masquage des upgrades achetées) ===
     CATALOGUE_BOUTIQUE.forEach(item => {
       const btn = document.getElementById(item.id);
       if (!btn) return;
 
+      // Détection de l'onglet correspondant
       let correspondALOnglet = false;
       if (ongletActif === 'Base' && (item.zone === 'batiments-terre' || item.zone === 'ameliorations-terre')) {
         correspondALOnglet = true;
@@ -2370,8 +2371,24 @@ function mettreAjourInterface() {
         correspondALOnglet = true;
       }
 
-      // === 7. GESTION DES CONDITIONS D'ACHAT (item.prix() / IMAGES_RESSOURCES) ===
-      if (item.unique && item.achete()) {
+      // 🌟 SÉCURITÉ DE MASQUAGE : Si l'amélioration unique est déjà achetée, on la cache DIRECTEMENT !
+      let dejaAchete = false;
+      if (item.unique) {
+        if (typeof item.achete === 'function') {
+          dejaAchete = item.achete();
+        }
+        // Double vérification manuelle pour la boutique des améliorations de fusée
+        if (item.id === 'btn-up-croquettes' && upgradesFusee.croquettes) dejaAchete = true;
+        if (item.id === 'btn-up-plasma' && upgradesFusee.plasma) dejaAchete = true;
+        if (item.id === 'btn-up-hyperpropulsion' && upgradesFusee.hyperpropulsion) dejaAchete = true;
+        if (item.id === 'btn-up-distorsion' && upgradesFusee.distorsion) dejaAchete = true;
+        if (item.id === 'btn-up-soute' && upgradesFusee.soute) dejaAchete = true;
+        if (item.id === 'btn-up-compresseur' && upgradesFusee.compresseur) dejaAchete = true;
+        if (item.id === 'btn-up-extracteur' && upgradesFusee.extracteur) dejaAchete = true;
+        if (item.id === 'btn-up-moissonneuse' && upgradesFusee.moissonneuse) dejaAchete = true;
+      }
+
+      if (dejaAchete) {
         btn.style.display = 'none';
       } 
       else if (item.id === "btn-metier-satellite" && nbSatellites >= 30) {
@@ -2398,7 +2415,6 @@ function mettreAjourInterface() {
         let aLesFonds = true;
 
         for (let res in coutActuel) {
-          // 🌟 NOUVELLE LIGNE AVEC L'IMAGE DYNAMIQUE :
           htmlPrix += `<span><img src="${IMAGES_RESSOURCES[res]}" class="icone-ressource-img" style="width:14px;height:14px;margin-right:3px;vertical-align:middle;">${convertirNombreCHA(coutActuel[res])}</span> `;
           if (ressources[res] < coutActuel[res]) aLesFonds = false;
         }
