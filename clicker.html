@@ -4904,6 +4904,20 @@ let controlesEspaceConfigures = false;
       const verifierReponse = () => {
         if (inputReponse.value.trim().toLowerCase() === 'estelle') {
           ecranUltime.style.display = 'flex';
+          
+          // 🌟 AJOUT DU BOUTON DE RETOUR SUR L'ÉCRAN ULTIME
+          if (!document.getElementById('btn-retour-ultime')) {
+            const btnRetourUltime = document.createElement('button');
+            btnRetourUltime.id = 'btn-retour-ultime';
+            btnRetourUltime.textContent = '◀ Retour';
+            btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002;";
+            
+            btnRetourUltime.addEventListener('click', () => {
+              ecranUltime.style.display = 'none';
+            });
+            
+            ecranUltime.appendChild(btnRetourUltime);
+          }
         } else {
           inputReponse.style.borderColor = '#ff4d4d';
           inputReponse.classList.add('tremblement-erreur');
