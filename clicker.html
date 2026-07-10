@@ -4954,31 +4954,32 @@ let controlesEspaceConfigures = false;
   }
 
   function synchroniserVraieHeureInternet() {
-    // Utilisation de l'API Cloudflare (ultra-fiable, compatible CORS)
-    fetch('https://time.cloudflare.com')
+    // 🌟 On s'appelle soi-même ! Pas d'API externe, pas de blocage possible.
+    fetch(window.location.href, { method: 'HEAD' })
       .then(res => {
+        // Netlify injecte obligatoirement un en-tête 'Date' avec l'heure exacte de son serveur
         const dateHeader = res.headers.get('Date');
         if (!dateHeader) throw new Error("Pas d'en-tête Date");
         
         const vraieDateInternet = new Date(dateHeader);
         const heurePC = new Date();
         
-        // 1. Calcul du décalage initial
+        // Calcul du décalage
         decalageHeureReelleMs = vraieDateInternet.getTime() - heurePC.getTime();
-        console.log(`[SYNCHRO] Horloge synchronisée via Cloudflare. Décalage : ${decalageHeureReelleMs}ms`);
+        console.log(`[SYNCHRO] Horloge synchronisée via le serveur Netlify. Décalage : ${decalageHeureReelleMs}ms`);
 
-        // 🌟 2. ALERTE POPUP SI L'HEURE DU PC EST ERRONÉE (Marge de 3 minutes = 180000 ms)
+        // Alerte popup si l'heure du PC est déréglée de plus de 3 minutes
         if (Math.abs(decalageHeureReelleMs) > 180000) {
-          // On attend 1 seconde pour que l'interface du jeu soit bien chargée avant d'ouvrir la popup
           setTimeout(() => {
             ouvrirNotificationCHA(
-              "Tricheuse", 
-              "Tu croyais vraiment que tu n'allais pas attendre :)"
+              "Désynchronisation Temporelle", 
+              "Attention ! L'heure de votre ordinateur ne semble pas réglée correctement sur l'heure réelle. L'affichage de l'horloge cosmique a été réajusté automatiquement pour garantir l'équité du jeu."
             );
           }, 1000);
         }
       })
       .catch(error => {
+        // En cas de secours ultime (mode hors-ligne total)
         console.log("[SYNCHRO] Mode local activé. Protection anti-triche matérielle active.");
         decalageHeureReelleMs = 0;
       });
