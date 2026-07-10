@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Fixe - Image Rotative</title>
+<style>
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1b1d; /* Fond sombre assorti */
+    overflow: hidden;         /* 🛑 Bloque complètement le vrai défilement de la page */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: sans-serif;
+  }
+
+  /* CONTAINER CENTRAL POUR VÉRIFIER QUE LA PAGE EST FIXE */
+  .contenu-centre {
+    text-align: center;
+    color: #ffffff;
+    z-index: 1;
+    pointer-events: none; /* Laisse passer les clics et le scroll à travers le texte */
+  }
+
+  /* 🔄 STYLE DE L'IMAGE QUI TOURNE */
+  .image-rotative {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+    
+    /* Pivotement parfait depuis son centre exact */
+    transform-origin: center center; 
+    
+    /* Adoucit la rotation pour éviter les saccades de la molette */
+    transition: transform 0.1s ease-out; 
+    
+    width: 250px;  /* Ajuste la taille de ton image ici */
+    height: 250px;
+    object-fit: contain;
+    z-index: 2;
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="contenu-centre">
+    <h1>Page Fixe</h1>
+  </div>
+
+  <img src="images/terrecha.png" class="image-rotative" id="img-scroll">
+
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  const image = document.getElementById('img-scroll');
+  
+  let angleActuel = 0;
+  
+  // ⚙️ RÉGLAGE DE LA SENSIBILITÉ (Plus le chiffre est haut, plus ça tourne vite)
+  const vitesseRotation = 6; 
+
+  /* =========================================================================
+     🖱️ GESTION POUR ORDINATEUR (Molette de la souris / Trackpad)
+     ========================================================================= */
+  window.addEventListener('wheel', (evenement) => {
+    if (evenement.deltaY > 0) {
+      // 🔽 Molette vers le BAS -> Rotation vers la DROITE
+      angleActuel += vitesseRotation;
+    } else if (evenement.deltaY < 0) {
+      // 🔼 Molette vers le HAUT -> Rotation vers la GAUCHE
+      angleActuel -= vitesseRotation;
+    }
+
+    // Application de la transformation
+    image.style.transform = `translate(-50%, -50%) rotate(${angleActuel}deg)`;
+  });
+
+});
+</script>
+
+</body>
+</html>

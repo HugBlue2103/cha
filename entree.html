@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHA</title>
+<link rel="icon" type="image/png" href="images/icone512x512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+
+  /* =========================================================
+     ⚙️  ZONE DE CONFIGURATION VISUELLE
+     ========================================================= */
+  :root{
+    --fond-uni: #1c1e21;      /* couleur unie derrière les plaques */
+    --accent: #7CFC6E;
+    --texte: #101214;
+    --fond-page: #1a1b1d;
+  }
+
+  *{ box-sizing: border-box; }
+
+  @font-face {
+    font-family: 'CHA';
+    src: url('polices/Cha-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  html,body{
+    margin:0; height:100%;
+    background: var(--fond-page);
+    font-family: 'CHA', sans-serif;
+    color: var(--texte);
+    overflow: hidden;
+
+    /* 🐾 Curseur personnalisé */
+    cursor: url('images/click/curseur64.png') 13 11, auto !important;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE10+ */
+    user-select: none;         /* Standard (Chrome, Edge, Opera) */
+  }
+
+  button, 
+  a, 
+  .touche,
+  .controle-volume input[type="range"]::-webkit-slider-thumb,
+  .controle-volume input[type="range"], 
+  .rond-activation {
+    cursor: url('images/click/curseur64_clic.png') 10 10, pointer !important;
+  }
+
+  .ecran{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    transition: opacity 0.9s ease;
+  }
+  .ecran.cache{
+    opacity:0; pointer-events:none;
+  }
+
+  #mur{
+    position:relative;
+    width:100%; height:100%;
+  }
+
+  /* ---------- COUCHE DU FOND ---------- */
+  #fond{
+    position:absolute; inset:0;
+    background: var(--fond-uni);
+    z-index:1;
+  }
+
+  /* ---------- COUCHE DES PLAQUES DE MÉTAL ---------- */
+  .mur-grille{
+    position:absolute; inset:0;
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    z-index:3;
+  }
+
+  /* Chaque case de la grille gère son propre affichage */
+  .case-grille {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .panneau{
+    position: absolute;
+    inset: 0;
+    background-image: url('images/plaque.png');
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+    z-index: 2;
+  }
+
+  .panneau.tombe{
+    transform: translateY(140%) rotate(6deg);
+    opacity:0;
+    pointer-events:none;
+  }
+
+  /* ---------- HALO LUMINEUX DE L'INDICE D'AIDE ---------- */
+  .panneau.halo{
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.9), 0 0 24px 8px rgba(255,255,255,0.6);
+    animation: pulse-halo 1.4s ease-in-out infinite;
+    z-index: 5;
+  }
+  @keyframes pulse-halo{
+    0%,100%{ box-shadow: 0 0 0 4px rgba(255,255,255,0.9), 0 0 24px 8px rgba(255,255,255,0.6); }
+    50%{ box-shadow: 0 0 0 4px rgba(255,255,255,0.5), 0 0 12px 4px rgba(255,255,255,0.3); }
+  }
+
+  /* ---------- COUCHE DES ÉLÉMENTS RÉVÉLÉS (Indices) ---------- */
+  .contenu-revele{
+    display:flex; align-items:center; justify-content:center;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.4s ease;
+    z-index: 1; /* Derrière la plaque, mais devant le fond */
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    text-align: center;
+  }
+  .contenu-revele.visible{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  /* Bouton d'activation (démarre la musique) */
+  .rond-activation{
+    width: 76px; height: 76px;
+    border-radius:50%;
+    background: var(--accent);
+    box-shadow: 0 0 18px rgba(124,252,110,0.6);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: transform 0.15s ease;
+  }
+  .rond-activation:hover{ transform: scale(1.06); }
+  .rond-activation::after{
+    content:"";
+    width:0; height:0;
+    border-top: 16px solid transparent;
+    border-bottom: 16px solid transparent;
+    border-left: 24px solid #14210f;
+    margin-left: 6px;
+  }
+
+  /* Indice 2 : Texte (MIAOU MIAOUUUUU) */
+  .texte-indice{
+    color: var(--accent);
+    font-size: 45px;
+    font-weight: 600;
+    line-height:1.4;
+    white-space: pre-line;
+  }
+
+  /* Indice 3 : Téléchargement (Style similaire au bouton de lecture) */
+  .btn-telechargement {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 18px rgba(124,252,110,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    position: relative;
+    text-decoration: none; /* Enlève le soulignement du lien */
+  }
+  
+  .btn-telechargement:hover { 
+    transform: scale(1.06); 
+  }
+
+  /* 📥 Icône Télécharger en pur CSS (La flèche vers le bas) */
+  .btn-telechargement::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    width: 6px;
+    height: 20px;
+    background: #14210f; /* Même couleur foncée que la flèche play */
+  }
+
+  .btn-telechargement::after {
+    content: "";
+    position: absolute;
+    top: 36px;
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 16px solid #14210f;
+  }
+
+  /* ---------- Bloc central : afficheur de code + clavier ---------- */
+  .bloc-code{
+    position:absolute;
+    top:50%; left:50%;
+    transform: translate(-50%, -50%);
+    z-index:5;
+    display:flex; flex-direction:column; align-items:center;
+    gap: 28px;
+  }
+
+  .afficheur{
+    background: #2a2c2f;
+    border: 3px solid #2a2c2f;
+    border-radius: 6px;
+    padding: 18px 34px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
+  }
+
+  .afficheur .chiffres{
+    font-size: 34px;
+    letter-spacing: 12px;
+    color: var(--accent);
+    min-width: 220px;
+    text-align:center;
+  }
+
+  .clavier{
+    display:flex; gap: 16px;
+  }
+
+  .touche{
+    width: 58px; height: 58px;
+    border-radius: 6px;
+    border: 2px solid #2a2c2f;
+    background: linear-gradient(180deg, #e4e6e8, #b7bbc0);
+    font-family:'CHA', sans-serif;
+    font-size: 20px; font-weight: 600;
+    cursor:pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  .touche:active{ transform: translateY(2px); box-shadow: none; }
+
+  .touche.erreur{ animation: secoue 0.35s; background:#e77; }
+  @keyframes secoue{
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-6px); }
+    75%{ transform: translateX(6px); }
+  }
+
+  .touche.succes{
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(124,252,110,0.7);
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  /* ---------- CURSEUR DE VOLUME (Indice 1) ---------- */
+  .controle-volume {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    font-size: 40px;
+    width: 100%;
+  }
+
+  .controle-volume input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 80%;
+    height: 6px;
+    background: #2a2c2f;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  /* Le petit bouton rond du curseur */
+  .controle-volume input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(124,252,110,0.6);
+  }
+
+
+</style>
+</head>
+<body>
+
+  <div id="ecran-mur" class="ecran">
+    <div id="mur">
+
+      <div id="fond"></div>
+
+      <div class="mur-grille" id="mur-grille"></div>
+
+      <div class="bloc-code">
+        <div class="afficheur">
+          <div class="chiffres" id="affichage-chiffres">_ _ _ _ _</div>
+        </div>
+        <div class="clavier" id="clavier">
+          <button class="touche" data-valeur="0">0</button>
+          <button class="touche" data-valeur="1">1</button>
+          <button class="touche" data-valeur="2">2</button>
+          <button class="touche" data-valeur="3">3</button>
+          <button class="touche" data-valeur="4">4</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <audio id="son-dur" src="sons/clic-dur.mp3" preload="auto"></audio>
+  <audio id="son-creux" src="sons/clic-creux.mp3" preload="auto"></audio>
+  <audio id="son-touche" src="sons/touche.mp3" preload="auto"></audio>
+  <audio id="son-erreur" src="sons/erreur.mp3" preload="auto"></audio>
+  <audio id="son-succes" src="sons/succes.mp3" preload="auto"></audio>
+  <audio id="musique" preload="auto" loop></audio>
+
+<script>
+/* =========================================================================
+   ⚙️  CONFIGURATION
+   ========================================================================= */
+
+const CONFIG = {
+  NB_PANNEAUX: 24,
+  SEUIL_CLICS: 3,
+  CODE_SECRET: "12120",
+  DELAI_AVANT_SON: 500,
+
+  PANNEAUX_SPECIAUX: [
+    { id: 3,  type: "indice-texte", contenu: "MIAOU\nMIAOUUUUU" },
+    { id: 7,  type: "activation" },
+    { id: 18, type: "indice-telechargement", fichier: "morse/cha.wav" }
+  ]
+};
+
+
+/* =========================================================================
+   ÉTAT DU JEU
+   ========================================================================= */
+let clicsParPanneau = {};      
+let panneauxTombes = new Set();
+let timerAide = null;
+let saisieActuelle = "";
+let elementPremierPanneau = null; 
+
+const sonDur     = document.getElementById('son-dur');
+const sonCreux   = document.getElementById('son-creux');
+const sonTouche  = document.getElementById('son-touche');
+const sonErreur  = document.getElementById('son-erreur');
+const sonSucces  = document.getElementById('son-succes');
+const musique    = document.getElementById('musique');
+
+function trouverPanneauSpecial(id){
+  return CONFIG.PANNEAUX_SPECIAUX.find(p => p.id === id);
+}
+
+
+/* =========================================================================
+   CONSTRUCTION DE LA GRILLE DE PLAQUES ET INSCRIPTION DES INDICES
+   ========================================================================= */
+const grille = document.getElementById('mur-grille');
+
+for (let i = 1; i <= CONFIG.NB_PANNEAUX; i++) {
+  // 1. Création d'un conteneur de cellule pour la grille
+  const conteneurCase = document.createElement('div');
+  conteneurCase.className = 'case-grille';
+
+  // 2. Création de la plaque de métal
+  const p = document.createElement('div');
+  p.className = 'panneau';
+  p.dataset.id = i;
+
+  const special = trouverPanneauSpecial(i);
+  if (special) {
+    p.dataset.creux = "true";
+    if (special.type === "indice-texte") {
+      elementPremierPanneau = p;
+    }
+
+    // 3. Création de l'élément d'indice, placé DIRECTEMENT dans la case (sous la plaque)
+    const divIndice = document.createElement('div');
+    divIndice.className = 'contenu-revele';
+    divIndice.id = `reveal-${special.type}`;
+
+    if (special.type === "activation") {
+      // 1. Le bouton de lecture d'origine
+      const rond = document.createElement('div');
+      rond.className = 'rond-activation';
+      
+      // 2. Le conteneur du réglage volume (masqué au début)
+      const zoneVolume = document.createElement('div');
+      zoneVolume.className = 'controle-volume';
+      zoneVolume.style.display = 'none'; // Caché au départ
+      zoneVolume.innerHTML = `
+        <span>VOLUME</span>
+        <input type="range" min="0" max="1" step="0.05" value="0.5">
+      `;
+
+      // On écoute le changement de volume sur le curseur
+      const curseur = zoneVolume.querySelector('input');
+      curseur.addEventListener('input', (e) => {
+        const baliseAudioMusique = document.getElementById('musique');
+        if (baliseAudioMusique) {
+          baliseAudioMusique.volume = e.target.value;
+        }
+      });
+
+      // Au clic sur le bouton vert, on intervertit les deux éléments
+      rond.addEventListener('click', () => {
+        rond.style.display = 'none';       // Le bouton vert s'en va
+        zoneVolume.style.display = 'flex'; // La barre de volume apparaît au même endroit
+        activerMusique();                  // Lance la musique
+      }, { once: true });
+
+      divIndice.appendChild(rond);
+      divIndice.appendChild(zoneVolume);
+    }
+    else if (special.type === "indice-texte") {
+      divIndice.className += ' texte-indice';
+      divIndice.textContent = special.contenu;
+    } 
+    else if (special.type === "indice-telechargement") {
+      const lien = document.createElement('a');
+      lien.className = 'btn-telechargement'; // Reçoit le style circulaire vert
+      lien.href = special.fichier;
+      lien.download = "";
+      
+      // Pas de texte ici, les flèches CSS font le travail !
+
+      lien.addEventListener('click', () => {
+        setTimeout(() => divIndice.classList.remove('visible'), 100);
+      });
+      divIndice.appendChild(lien);
+    }
+
+    conteneurCase.appendChild(divIndice);
+  }
+
+  p.addEventListener('click', () => gererClicPanneau(p, i, !!special));
+  conteneurCase.appendChild(p);
+  grille.appendChild(conteneurCase);
+}
+
+
+function jouerSon(audio){
+  if (!audio) {
+    console.error("L'élément audio demandé n'existe pas dans le HTML !");
+    return;
+  }
+  audio.currentTime = 0;
+  audio.play().catch((erreur) => {
+    console.warn("Le navigateur a bloqué le son ou le fichier est introuvable :", erreur);
+  });
+}
+
+function gererClicPanneau(element, id, estSpecial){
+  jouerSon(estSpecial ? sonCreux : sonDur);
+
+  // Si ce n'est pas une plaque spéciale ou si elle est déjà tombée, on ne fait rien
+  if (!estSpecial || panneauxTombes.has(id)) return;
+
+  // On incrémente le nombre de clics sur cette plaque
+  clicsParPanneau[id] = (clicsParPanneau[id] || 0) + 1;
+
+  // Si on atteint le seuil (3 clics), la plaque tombe !
+  if (clicsParPanneau[id] >= CONFIG.SEUIL_CLICS){
+    faireTomberPanneau(element, id);
+  }
+}
+
+function faireTomberPanneau(element, id){
+  panneauxTombes.add(id);
+  element.classList.add('tombe');
+
+  setTimeout(() => {
+    element.style.visibility = 'hidden';
+    revelerContenu(element, id);
+  }, 100);
+}
+
+function revelerContenu(panneauDisparu, id){
+  const special = trouverPanneauSpecial(id);
+  if (!special) return;
+
+  // Récupère l'indice enfant présent dans la même case
+  const elementIndice = panneauDisparu.parentNode.querySelector('.contenu-revele');
+  if (elementIndice) {
+    elementIndice.classList.add('visible');
+  }
+}
+
+let morseEnLecture = false;
+function activerMusique(){
+  const baliseAudioMusique = document.getElementById('musique');
+  
+  // 🔬 Petit espion pour la console
+  console.log("--- TEST ENTRÉE MUSIQUE ---");
+  console.log("Balise trouvée ?", baliseAudioMusique);
+  console.log("morseEnLecture vaut :", morseEnLecture);
+  console.log("Condition globale :", (baliseAudioMusique && !morseEnLecture));
+
+  if (baliseAudioMusique && !morseEnLecture) {
+    console.log("👉 SUCCESS : Je rentre dans le IF !");
+    baliseAudioMusique.src = "/morse/cha.wav"; 
+    baliseAudioMusique.loop = true; 
+    baliseAudioMusique.volume = 0.5; 
+    
+    baliseAudioMusique.play().catch((err) => {
+      console.log("Erreur de lecture audio : ", err);
+    });
+    
+    morseEnLecture = true;
+  } else {
+    console.log("❌ ÉCHEC : Je ne rentre pas dans le IF.");
+  }
+}
+
+/* =========================================================================
+   CLAVIER DE SAISIE DU CODE (base 5)
+   ========================================================================= */
+const affichageChiffres = document.getElementById('affichage-chiffres');
+
+document.querySelectorAll('.touche').forEach(bouton => {
+  bouton.addEventListener('click', () => {
+    if (saisieActuelle.length >= CONFIG.CODE_SECRET.length) {
+      return; 
+    }
+
+    jouerSon(sonTouche);
+    saisieActuelle += bouton.dataset.valeur;
+    majAffichage();
+
+    if (saisieActuelle.length === CONFIG.CODE_SECRET.length){
+      verifierCode();
+    }
+  });
+});
+
+function majAffichage(){
+  const chiffres = saisieActuelle.padEnd(CONFIG.CODE_SECRET.length, '_').split('');
+  affichageChiffres.textContent = chiffres.join(' ');
+}
+
+function verifierCode(){
+  if (saisieActuelle === CONFIG.CODE_SECRET){
+    setTimeout(() => {
+      jouerSon(sonSucces);
+      document.querySelectorAll('.touche').forEach(b => b.classList.add('succes'));
+      passerAEcranSuivant();
+    }, CONFIG.DELAI_AVANT_SON);
+  } else {
+    setTimeout(() => {
+      jouerSon(sonErreur);
+      document.querySelectorAll('.touche').forEach(b => b.classList.add('erreur'));
+      setTimeout(() => {
+        document.querySelectorAll('.touche').forEach(b => b.classList.remove('erreur'));
+        saisieActuelle = "";
+        majAffichage();
+      }, 400);
+    }, CONFIG.DELAI_AVANT_SON);
+  }
+}
+
+majAffichage();
+
+
+/* =========================================================================
+   TRANSITION VERS LA PAGE SUIVANTE
+   ========================================================================= */
+/* =========================================================================
+   TRANSITION VERS LA PAGE SUIVANTE
+   ========================================================================= */
+function passerAEcranSuivant(){
+  setTimeout(() => {
+    // 🌟 REDIRECTION DIRECTE : Envoie le joueur vers le fichier du jeu clicker
+    window.location.href = "clicker.html";
+  }, 500); 
+}
+
+</script>
+</body>
+</html>
