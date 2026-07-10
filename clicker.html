@@ -1179,8 +1179,9 @@
 </div>
 
 <div id="zone-bouton-secret" style="text-align: center; margin-top: 20px; display: none;">
-  <button id="btn-secret-pas-fin" style="background: transparent; border: 1px dashed #333; color: #555; padding: 12px 24px; font-family: 'AlphabetCHA', sans-serif !important; cursor: pointer; font-size: 25px; border-radius: 4px; transition: all 0.3s;">
-    et si c'était pas la fin ???
+  <!-- 🌟 AJOUT DE font-family: sans-serif !important -->
+  <button id="btn-secret-pas-fin" style="background: transparent; border: 1px dashed #333; color: #555; padding: 12px 24px; cursor: pointer; font-size: 18px; border-radius: 4px; transition: all 0.3s; font-family: sans-serif !important;">
+    et si ce n'était la fin...
   </button>
 </div>
 
@@ -1189,7 +1190,8 @@
   
   <input type="text" id="input-reponse-secrete" style="padding: 12px; font-size: 22px; border: 2px solid #ccc; border-radius: 6px; text-align: center; width: 320px; margin-bottom: 20px; outline: none; font-family: 'AlphabetCHA', sans-serif !important;">
   
-  <button id="btn-valider-reponse-secrete" style="padding: 12px 28px; font-size: 25px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: 'AlphabetCHA', sans-serif !important;">Valider</button>
+<!-- 🌟 Remplacement de la font-family par sans-serif !important -->
+  <button id="btn-valider-reponse-secrete" style="padding: 12px 28px; font-size: 18px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: sans-serif !important;">Valider</button>
 </div>
 
 <div id="ecran-enigme-ultime" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 10001; flex-direction: column; align-items: center; justify-content: center; color: black; padding: 40px; text-align: center;">
@@ -1202,6 +1204,7 @@
 window.addEventListener('DOMContentLoaded', () => {
 
   const MODE_DEBUG = true;
+  const SOUHAITE_SAUVEGARDER = true;
   
   /*// 🌟 CONDITION COMMANDE DEBUG : Sélection manuelle de l'heure du ciel au démarrage
   if (MODE_DEBUG) {
@@ -1422,6 +1425,70 @@ window.addEventListener('DOMContentLoaded', () => {
   
   let nbLasersManuels = 0; // Sécurité pour le laser manuel
 
+  // 🎵 CONFIGURATION DE LA PLAYLIST MUSICALE
+  const PLAYLIST_MUSIQUES = [
+    "sons/ambiance/Aerie.mp3",
+    "sons/ambiance/Infinite_Amethyst.mp3",
+    "sons/ambiance/Introduction.mp3",
+    "sons/ambiance/aloy.mp3",
+    "sons/ambiance/Trust.mp3",
+    "sons/ambiance/Wanderstop.mp3",
+    "sons/ambiance/Friends.mp3",
+    "sons/ambiance/boruto.mp3",
+    // 💡 Tu peux ajouter autant de musiques que tu veux ici !
+  ];
+
+  let musiqueFond = null;
+  let indexMusiqueActuelle = -1;
+
+  function lancerPlaylistAleatoire() {
+    if (PLAYLIST_MUSIQUES.length === 0) return;
+
+    // Choix d'un index au hasard différent de la musique qui vient de se terminer
+    let nouvelIndex = indexMusiqueActuelle;
+    if (PLAYLIST_MUSIQUES.length > 1) {
+      while (nouvelIndex === indexMusiqueActuelle) {
+        nouvelIndex = Math.floor(Math.random() * PLAYLIST_MUSIQUES.length);
+      }
+    } else {
+      nouvelIndex = 0;
+    }
+    
+    indexMusiqueActuelle = nouvelIndex;
+
+    // Si l'objet audio n'existe pas encore, on le crée
+    if (!musiqueFond) {
+      musiqueFond = new Audio();
+      musiqueFond.volume = 0.4; 
+
+      // 🔄 ÉVÉNEMENT MAGIQUE : Dès que le morceau se termine, on relance automatiquement une autre musique
+      musiqueFond.addEventListener('ended', () => {
+        lancerPlaylistAleatoire();
+      });
+    }
+
+    // Chargement du fichier mp3 pioché et lecture
+    musiqueFond.src = PLAYLIST_MUSIQUES[indexMusiqueActuelle];
+    musiqueFond.play().catch(err => {
+      console.log("[AUDIO] Lecture bloquée par le navigateur. En attente du premier clic du joueur.");
+    });
+    
+    console.log(`[AUDIO] Lecture en cours : ${PLAYLIST_MUSIQUES[indexMusiqueActuelle]}`);
+  }
+
+  const SON_ACHAT = new Audio("sons/click.mp3");
+  const SON_CLIC_BOIS = new Audio("sons/hache_bois.mp3");
+  const SON_CLIC_PIERRE = new Audio("sons/pierre.mp3");
+  const SON_CLIC_ELEC = new Audio("sons/elec.mp3");
+  const SON_ACHAT_CHAT = new Audio("sons/achat_chat.mp3");
+
+  SON_CLIC_BOIS.volume = 0.5;
+  SON_CLIC_PIERRE.volume = 0.5;
+  SON_CLIC_ELEC.volume = 0.5;
+  SON_ACHAT.volume = 0.6;
+  SON_ACHAT_CHAT.volume = 0.6;
+
+
   window.ouvrirNotificationCHA = function(titre, texte, actionAuClic = null, texteBoutonPrincipal = "Fermer", avecBoutonAnnuler = false) {
     const modalNotif = document.getElementById('modal-notification-custom');
     const titreNotif = document.getElementById('notif-custom-titre');
@@ -1555,7 +1622,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: calculerPrixExponentiel(10, nbBucherons) }),
       qte: () => nbBucherons,
       condition: () => true, // Toujours visible et accessible dès le départ
-      action: () => { nbBucherons++; ajouterUnChatOuvrierSurPlanete('bois', nbBucherons, 'images/minichat-bucheron.png'); }
+      action: () => { nbBucherons++; ajouterUnChatOuvrierSurPlanete('bois', nbBucherons, 'images/minichat-bucheron.png'); SON_ACHAT_CHAT.currentTime = 0; SON_ACHAT_CHAT.play();}
     },
     {
       id: "btn-bat-pierre", zone: "batiments-terre", type: "batiment",
@@ -1565,7 +1632,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ pierre: calculerPrixExponentiel(50, nbMineurs) }),
       qte: () => nbMineurs,
       condition: () => upgradePierreAchetee, // Apparaît uniquement si la pierre est débloquée
-      action: () => { nbMineurs++; ajouterUnChatOuvrierSurPlanete('pierre', nbMineurs, 'images/minichat-mineur.png'); }
+      action: () => { nbMineurs++; ajouterUnChatOuvrierSurPlanete('pierre', nbMineurs, 'images/minichat-mineur.png'); SON_ACHAT_CHAT.currentTime = 0; SON_ACHAT_CHAT.play();}
     },
     {
       id: "btn-bat-energie", zone: "batiments-terre", type: "batiment",
@@ -1575,7 +1642,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: calculerPrixExponentiel(100, nbCentrales) }),
       qte: () => nbCentrales,
       condition: () => planCentraleAchete, // Apparaît uniquement si le brevet a été obtenu
-      action: () => { nbCentrales++; ajouterUnChatOuvrierSurPlanete('energie', nbCentrales, 'images/minichat-elec.png'); }
+      action: () => { nbCentrales++; ajouterUnChatOuvrierSurPlanete('energie', nbCentrales, 'images/minichat-elec.png'); SON_ACHAT_CHAT.currentTime = 0; SON_ACHAT_CHAT.play();}
     },
 
     // ------------------- AMÉLIORATIONS TERRESTRES -------------------
@@ -2234,6 +2301,12 @@ window.addEventListener('DOMContentLoaded', () => {
           if (!MODE_DEBUG) {
             for (let res in coutActuel) ressources[res] -= coutActuel[res];
           }
+          
+          // 🌟 EFFET SONORE D'ACHAT :
+          // .currentTime = 0 permet de rejouer le son immédiatement même si on clique très vite
+          SON_ACHAT.currentTime = 0; 
+          SON_ACHAT.play().catch(e => console.log("[AUDIO] Bruitage d'achat bloqué par le navigateur."));
+
           item.action();
           // 🌟 FORCE L'ACTUALISATION VISUELLE IMMÉDIATE DU HUD HAPPY HOUR AU CLIC
           avancerCalendrierVirtuel(0);
@@ -2653,6 +2726,19 @@ function mettreAjourInterface() {
     zone.addEventListener('click', (e) => {
       const type = zone.dataset.ressource;
       ressources[type] += clics[type];
+
+      if (type === 'bois') {
+        SON_CLIC_BOIS.currentTime = 0;
+        SON_CLIC_BOIS.play().catch(err => console.log("[AUDIO] Son bois.mp3 manquant ou bloqué."));
+      } 
+      else if (type === 'pierre') {
+        SON_CLIC_PIERRE.currentTime = 0;
+        SON_CLIC_PIERRE.play().catch(err => console.log("[AUDIO] Son pierre.mp3 manquant ou bloqué."));
+      } 
+      else if (type === 'energie') {
+        SON_CLIC_ELEC.currentTime = 0;
+        SON_CLIC_ELEC.play().catch(err => console.log("[AUDIO] Son elec.mp3 manquant ou bloqué."));
+      }
       
       if(type === 'bois' && etapeTutoRotateOk && !etapeTutoClicOk) {
         etapeTutoClicOk = true;
@@ -4905,12 +4991,12 @@ let controlesEspaceConfigures = false;
         if (ecranQuestion) {
           ecranQuestion.style.display = 'flex';
           
-          // Création du bouton retour en alphabet CHA
           if (!document.getElementById('btn-retour-secret')) {
             const btnRetour = document.createElement('button');
             btnRetour.id = 'btn-retour-secret';
             btnRetour.textContent = '◀ Retour';
-            btnRetour.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: 'AlphabetCHA', sans-serif !important;";
+            // Changer font-family par sans-serif !important 🌟
+            btnRetour.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif !important;";
             
             btnRetour.addEventListener('click', () => {
               ecranQuestion.style.display = 'none';
@@ -4939,7 +5025,8 @@ let controlesEspaceConfigures = false;
           const btnRetourUltime = document.createElement('button');
           btnRetourUltime.id = 'btn-retour-ultime';
           btnRetourUltime.textContent = '◀ Page précédente';
-          btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #2a2c2f; color: white; border: 1px solid #3d4146; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; transition: background 0.2s;";
+          // font-family passée en sans-serif !important 🌟
+          btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #2a2c2f; color: white; border: 1px solid #3d4146; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: sans-serif !important; z-index: 10002; transition: background 0.2s;";
           btnRetourUltime.onmouseenter = () => btnRetourUltime.style.background = '#34373b';
           btnRetourUltime.onmouseleave = () => btnRetourUltime.style.background = '#2a2c2f';
           
@@ -4951,7 +5038,8 @@ let controlesEspaceConfigures = false;
           const btnRetourJeuUltime = document.createElement('button');
           btnRetourJeuUltime.id = 'btn-retour-jeu-ultime';
           btnRetourJeuUltime.textContent = '🌍 Retourner au jeu';
-          btnRetourJeuUltime.style.cssText = "position: absolute; top: 70px; left: 20px; padding: 10px 20px; background: #1a1b1d; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; transition: background 0.2s, color 0.2s;";
+          // font-family passée en sans-serif !important 🌟
+          btnRetourJeuUltime.style.cssText = "position: absolute; top: 70px; left: 20px; padding: 10px 20px; background: #1a1b1d; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: sans-serif !important; z-index: 10002; transition: background 0.2s, color 0.2s;";
           btnRetourJeuUltime.onmouseenter = () => { btnRetourJeuUltime.style.background = 'var(--accent)'; btnRetourJeuUltime.style.color = '#121315'; };
           btnRetourJeuUltime.onmouseleave = () => { btnRetourJeuUltime.style.background = '#1a1b1d'; btnRetourJeuUltime.style.color = 'var(--accent)'; };
 
@@ -4966,7 +5054,8 @@ let controlesEspaceConfigures = false;
           const btnResetUltime = document.createElement('button');
           btnResetUltime.id = 'btn-reset-ultime';
           btnResetUltime.textContent = '🔄 Recommencer une ligne temporelle';
-          btnResetUltime.style.cssText = "position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 12px 25px; background: #ff4d4d; color: #121315; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; box-shadow: 0 4px 15px rgba(255, 77, 77, 0.4); transition: transform 0.1s;";
+          // font-family passée en sans-serif !important 🌟
+          btnResetUltime.style.cssText = "position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 12px 25px; background: #ff4d4d; color: #121315; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; font-family: sans-serif !important; z-index: 10002; box-shadow: 0 4px 15px rgba(255, 77, 77, 0.4); transition: transform 0.1s;";
           btnResetUltime.onmouseenter = () => btnResetUltime.style.transform = 'translateX(-50%) scale(1.03)';
           btnResetUltime.onmouseleave = () => btnResetUltime.style.transform = 'translateX(-50%) scale(1)';
 
@@ -5131,6 +5220,9 @@ let controlesEspaceConfigures = false;
 
   // 💾 Fonction d'enregistrement global modifiée
   function sauvegarderProgression() {
+    if (!SOUHAITE_SAUVEGARDER) {
+      return;
+    }
     const donneesDuJeu = {
       ressources,
       clics,
@@ -5185,6 +5277,9 @@ let controlesEspaceConfigures = false;
 
   // 📂 Fonction de chargement globale et unifiée
   function chargerProgression() {
+    if (!SOUHAITE_SAUVEGARDER) {
+      return;
+    }
     const chaineDonnees = localStorage.getItem('cha_save_data');
     const hashEnregistre = localStorage.getItem('cha_save_hash');
 
@@ -5361,6 +5456,14 @@ let controlesEspaceConfigures = false;
 
   if (intervalleSauvegardeAuto) clearInterval(intervalleSauvegardeAuto);
   intervalleSauvegardeAuto = setInterval(sauvegarderProgression, 60000);
+
+  // 🌟 INITIALISATION DU LECTEUR DE MUSIQUE AU PREMIER CLIC SUR LE JEU
+  const activerMusiqueAuPremierClic = () => {
+    lancerPlaylistAleatoire();
+    // On retire l'écouteur pour ne pas re-déclencher la fonction à chaque clic !
+    window.removeEventListener('click', activerMusiqueAuPremierClic);
+  };
+  window.addEventListener('click', activerMusiqueAuPremierClic);
   
 });
 </script>
