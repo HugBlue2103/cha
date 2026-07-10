@@ -2512,14 +2512,24 @@ function mettreAjourInterface() {
 
 // 🌟 SORTI DU TIMER : La variable doit rester globale pour conserver l'état entre les tics !
   let derniereTrancheSec = -1;
+  let dernierTempsPcEnregistre = Date.now();
 
   setInterval(() => {
-    const tempsPc = new Date().getTime();
+    // 1. On déclare et initialise "tempsPcActuel" en tout premier !
+    const tempsPcActuel = Date.now();
     
-    // Application du décalage protecteur
+    // 2. Traque de la triche
+    const ecartCalculé = tempsPcActuel - dernierTempsPcEnregistre;
+    if (ecartCalculé < 0 || ecartCalculé > 2000) {
+      decalageHeureReelleMs -= (tempsPcActuel - dernierTempsPcEnregistre - 100);
+      console.warn("[SÉCURITÉ] Modification de l'horloge détectée et neutralisée !");
+    }
+    dernierTempsPcEnregistre = tempsPcActuel;
+
+    // 3. Application du décalage protecteur
     let maintenant = new Date(tempsPcActuel + decalageHeureReelleMs); 
 
-    // 🌟 EXTRACTION SÉCURISÉE DE L'HEURE FRANÇAISE POUR L'HAPPY HOUR ET LE VISUEL
+    // 4. Extraction sécurisée de l'heure française
     const heureFrStr = maintenant.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false });
     let heureReelleActuelle = parseInt(heureFrStr, 10); 
     
