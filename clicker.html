@@ -2512,13 +2512,13 @@ function mettreAjourInterface() {
 
 // 🌟 SORTI DU TIMER : La variable doit rester globale pour conserver l'état entre les tics !
   let derniereTrancheSec = -1;
+  // 🌟 SÉCURITÉ ANTI-TRICHE ET CLAMP FUSEAU HORAIRE :
   let dernierTempsPcEnregistre = Date.now();
 
   setInterval(() => {
-    // 1. On déclare et initialise "tempsPcActuel" en tout premier !
     const tempsPcActuel = Date.now();
     
-    // 2. Traque de la triche
+    // Traque de la triche sur le temps écoulé
     const ecartCalculé = tempsPcActuel - dernierTempsPcEnregistre;
     if (ecartCalculé < 0 || ecartCalculé > 2000) {
       decalageHeureReelleMs -= (tempsPcActuel - dernierTempsPcEnregistre - 100);
@@ -2526,13 +2526,16 @@ function mettreAjourInterface() {
     }
     dernierTempsPcEnregistre = tempsPcActuel;
 
-    // 3. Application du décalage protecteur
-    let maintenant = new Date(tempsPcActuel + decalageHeureReelleMs); 
+    // Application du décalage de base
+    let maintenantRaw = new Date(tempsPcActuel + decalageHeureReelleMs); 
 
-    // 4. Extraction sécurisée de l'heure française
-    const heureFrStr = maintenant.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false });
-    let heureReelleActuelle = parseInt(heureFrStr, 10); 
-    
+    // 🌟 FORCE LE FUSEAU HORAIRE DE LA FRANCE SUR L'OBJET DATE ENTIER
+    // On convertit la date brute en une chaîne calée sur Paris, puis on recrée un objet Date propre
+    const dateFrStr = maintenantRaw.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+    let maintenant = new Date(dateFrStr);
+
+    // Extraction des heures pour l'Happy Hour
+    let heureReelleActuelle = maintenant.getHours(); 
     const secondesReelles = maintenant.getSeconds();
     
     // 🌍 SYNCHRO TEMPS VIRTUEL COMPACTE (1 jour unique par tranche de 10s réelle)
