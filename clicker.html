@@ -4954,20 +4954,31 @@ let controlesEspaceConfigures = false;
   }
 
   function synchroniserVraieHeureInternet() {
-    // 🌟 Utilisation de l'API Cloudflare (ultra-fiable, jamais bloquée, compatible CORS)
+    // Utilisation de l'API Cloudflare (ultra-fiable, compatible CORS)
     fetch('https://time.cloudflare.com')
       .then(res => {
-        // Cloudflare renvoie l'heure dans ses en-têtes (Date)
         const dateHeader = res.headers.get('Date');
         if (!dateHeader) throw new Error("Pas d'en-tête Date");
         
         const vraieDateInternet = new Date(dateHeader);
         const heurePC = new Date();
+        
+        // 1. Calcul du décalage initial
         decalageHeureReelleMs = vraieDateInternet.getTime() - heurePC.getTime();
         console.log(`[SYNCHRO] Horloge synchronisée via Cloudflare. Décalage : ${decalageHeureReelleMs}ms`);
+
+        // 🌟 2. ALERTE POPUP SI L'HEURE DU PC EST ERRONÉE (Marge de 3 minutes = 180000 ms)
+        if (Math.abs(decalageHeureReelleMs) > 180000) {
+          // On attend 1 seconde pour que l'interface du jeu soit bien chargée avant d'ouvrir la popup
+          setTimeout(() => {
+            ouvrirNotificationCHA(
+              "Tricheuse", 
+              "Tu croyais vraiment que tu n'allais pas attendre :)"
+            );
+          }, 1000);
+        }
       })
       .catch(error => {
-        // Si vraiment tout internet est coupé, la protection passive prend le relais sans bug
         console.log("[SYNCHRO] Mode local activé. Protection anti-triche matérielle active.");
         decalageHeureReelleMs = 0;
       });
