@@ -5147,6 +5147,8 @@ let controlesEspaceConfigures = false;
       upgradesActivees,
       techActivees,
       etatFusee,
+      // 🌟 SÉCURITÉ AJOUTÉE : Sauvegarde de l'état des upgrades uniques de la fusée !
+      upgradesFusee,
       dateVirtuelle,
       joursVirtuelsEcoules,
       nbSatellites,
@@ -5167,7 +5169,6 @@ let controlesEspaceConfigures = false;
       nbLasersManuels: window.nbLasersManuels || 0,
       modeFuseeActuel,
       cielMystereActif,
-      // 🌟 SAUVEGARDE DES TUTOS ET TRADUCTION
       etapeTutoRotateOk,
       etapeTutoClicOk,
       tutoObservationFait,
@@ -5216,6 +5217,7 @@ let controlesEspaceConfigures = false;
       upgradesActivees = charge.upgradesActivees;
       techActivees = charge.techActivees;
       etatFusee = charge.etatFusee;
+      if (charge.upgradesFusee) upgradesFusee = charge.upgradesFusee;
       dateVirtuelle = charge.dateVirtuelle;
       joursVirtuelsEcoules = charge.joursVirtuelsEcoules;
       nbSatellites = charge.nbSatellites;
