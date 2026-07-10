@@ -2246,17 +2246,21 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
 function mettreAjourInterface() {
-    // 🌟 SÉCURITÉ STRICTE : Si on est en Traduction, on masque TOUT le bandeau et on stoppe le tick d'affichage
-    const blocRessourcesGlobal = document.getElementById('bloc-ressources');
+    // 🌟 SÉCURITÉ STRICTE : Si on est en Traduction, on masque TOUTES les barres du haut
+    const blocRessourcesGlobal = document.querySelector('.affichage-ressources');
+    const barreHorlogeGlobale = document.getElementById('barre-horloge-globale');
+    
     if (document.querySelector('.onglet.actif')) {
       ongletActif = document.querySelector('.onglet.actif').textContent.trim();
     }
     
     if (ongletActif === 'Traduction') {
-      if (blocRessourcesGlobal) blocRessourcesGlobal.style.display = 'none';
-      return; // 🛑 On stoppe ici, le reste de la fonction ne s'exécute pas pour cet onglet !
+      if (blocRessourcesGlobal) blocRessourcesGlobal.style.setProperty('display', 'none', 'important');
+      if (barreHorlogeGlobale) barreHorlogeGlobale.style.setProperty('display', 'none', 'important');
+      return; // 🛑 On stoppe ici
     } else {
-      if (blocRessourcesGlobal) blocRessourcesGlobal.style.display = 'flex';
+      if (blocRessourcesGlobal) blocRessourcesGlobal.style.setProperty('display', 'flex', 'important');
+      if (barreHorlogeGlobale) barreHorlogeGlobale.style.setProperty('display', 'flex', 'important');
     }
 
     // === 1. MISE À JOUR DES COMPTEURS DE RESSOURCES (CACHE LES DOM_TEXTES) ===
@@ -4909,26 +4913,40 @@ let controlesEspaceConfigures = false;
           
           // Nettoyage des anciens boutons pour éviter les doublons au ré-accès
           const vieuxRetour = document.getElementById('btn-retour-ultime');
+          const vieuxRetourJeu = document.getElementById('btn-retour-jeu-ultime');
           const vieuxReset = document.getElementById('btn-reset-ultime');
           if (vieuxRetour) vieuxRetour.remove();
+          if (vieuxRetourJeu) vieuxRetourJeu.remove();
           if (vieuxReset) vieuxReset.remove();
 
-          // 🌟 BOUTON 1 : RETOUR AVANT LA FIN (REPRENDRE LA NAVIGATION)
+          // 🌟 1. BOUTON RETOUR : RETOUR À LA PAGE PRÉCÉDENTE (LA QUESTION)
           const btnRetourUltime = document.createElement('button');
           btnRetourUltime.id = 'btn-retour-ultime';
-          btnRetourUltime.textContent = '◀ Reprendre la navigation';
+          btnRetourUltime.textContent = '◀ Page précédente';
           btnRetourUltime.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 10px 20px; background: #2a2c2f; color: white; border: 1px solid #3d4146; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; transition: background 0.2s;";
           btnRetourUltime.onmouseenter = () => btnRetourUltime.style.background = '#34373b';
           btnRetourUltime.onmouseleave = () => btnRetourUltime.style.background = '#2a2c2f';
           
           btnRetourUltime.addEventListener('click', () => {
             ecranUltime.style.display = 'none';
+          });
+          
+          // 🌟 2. BOUTON EN DESSOUS : RETOURNER DIRECTEMENT AU JEU
+          const btnRetourJeuUltime = document.createElement('button');
+          btnRetourJeuUltime.id = 'btn-retour-jeu-ultime';
+          btnRetourJeuUltime.textContent = '🌍 Retourner au jeu';
+          btnRetourJeuUltime.style.cssText = "position: absolute; top: 70px; left: 20px; padding: 10px 20px; background: #1a1b1d; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: 'AlphabetCHA', sans-serif !important; z-index: 10002; transition: background 0.2s, color 0.2s;";
+          btnRetourJeuUltime.onmouseenter = () => { btnRetourJeuUltime.style.background = 'var(--accent)'; btnRetourJeuUltime.style.color = '#121315'; };
+          btnRetourJeuUltime.onmouseleave = () => { btnRetourJeuUltime.style.background = '#1a1b1d'; btnRetourJeuUltime.style.color = 'var(--accent)'; };
+
+          btnRetourJeuUltime.addEventListener('click', () => {
+            ecranUltime.style.display = 'none';
             ecranQuestion.style.display = 'none';
             ecranBlanc.style.opacity = '0';
             ecranBlanc.style.pointerEvents = 'none';
           });
-          
-          // 🌟 BOUTON 2 : RECOMMENCER LA PARTIE (RESET TOTAL DE LA SAUVEGARDE)
+
+          // 🌟 3. BOUTON RECOMMENCER (RESET TOTAL DE LA SAUVEGARDE)
           const btnResetUltime = document.createElement('button');
           btnResetUltime.id = 'btn-reset-ultime';
           btnResetUltime.textContent = '🔄 Recommencer une ligne temporelle';
@@ -4941,11 +4959,12 @@ let controlesEspaceConfigures = false;
               clearInterval(intervalleSauvegardeAuto);
               localStorage.removeItem('cha_save_data');
               localStorage.removeItem('cha_save_hash');
-              window.location.reload(); // Relance le jeu à zéro
+              window.location.reload(); 
             }
           });
           
           ecranUltime.appendChild(btnRetourUltime);
+          ecranUltime.appendChild(btnRetourJeuUltime);
           ecranUltime.appendChild(btnResetUltime);
         } else {
           inputReponse.style.borderColor = '#ff4d4d';
@@ -5094,7 +5113,7 @@ let controlesEspaceConfigures = false;
     return hash.toString(36);
   }
 
-  // 💾 Fonction d'enregistrement global
+  // 💾 Fonction d'enregistrement global modifiée
   function sauvegarderProgression() {
     const donneesDuJeu = {
       ressources,
@@ -5131,7 +5150,12 @@ let controlesEspaceConfigures = false;
       lvlVoyageMoissonneurVide,
       nbLasersManuels: window.nbLasersManuels || 0,
       modeFuseeActuel,
-      cielMystereActif
+      cielMystereActif,
+      // 🌟 SAUVEGARDE DES TUTOS ET TRADUCTION
+      etapeTutoRotateOk,
+      etapeTutoClicOk,
+      tutoObservationFait,
+      estTraduit: document.body.classList.contains('traduit')
     };
 
     const chaineDonnees = JSON.stringify(donneesDuJeu);
@@ -5142,16 +5166,15 @@ let controlesEspaceConfigures = false;
     console.log("[SAUVEGARDE] Partie enregistrée automatiquement et sécurisée.");
   }
 
-  // 📂 Fonction de chargement au démarrage
+  // 📂 Fonction de chargement modifiée
   function chargerProgression() {
     const chaineDonnees = localStorage.getItem('cha_save_data');
     const hashEnregistre = localStorage.getItem('cha_save_hash');
 
     if (!chaineDonnees || !hashEnregistre) return;
 
-    // Vérification anti-triche
     if (genererHashSauvegarde(chaineDonnees) !== hashEnregistre) {
-      console.warn("[SÉCURITÉ] Sauvegarde corrompue ou modifiée manuellement ! Réinitialisation.");
+      console.warn("[SÉCURITÉ] Sauvegarde corrompue ! Réinitialisation.");
       localStorage.removeItem('cha_save_data');
       localStorage.removeItem('cha_save_hash');
       return;
@@ -5160,7 +5183,6 @@ let controlesEspaceConfigures = false;
     try {
       const charge = JSON.parse(chaineDonnees);
       
-      // Restauration des variables d'état
       ressources = charge.ressources;
       clics = charge.clics;
       multiplicateursPassifs = charge.multiplicateursPassifs;
@@ -5197,7 +5219,29 @@ let controlesEspaceConfigures = false;
       modeFuseeActuel = charge.modeFuseeActuel || "normale";
       cielMystereActif = charge.cielMystereActif || false;
 
-      // Reconstitution visuelle de l'interface et des éléments débloqués
+      // 🌟 APPLIQUE LES TUTOS ET LA TRADUCTION DEPUIS LA SAUVEGARDE
+      etapeTutoRotateOk = charge.etapeTutoRotateOk || false;
+      etapeTutoClicOk = charge.etapeTutoClicOk || false;
+      tutoObservationFait = charge.tutoObservationFait || false;
+
+      if (etapeTutoRotateOk) {
+        const tScroll = document.getElementById('tuto-scroll');
+        if (tScroll) tScroll.style.display = 'none';
+      }
+      if (etapeTutoClicOk) {
+        const tClic = document.getElementById('tuto-clic');
+        if (tClic) tClic.style.display = 'none';
+      }
+      if (charge.estTraduit) {
+        document.body.classList.add('traduit');
+        const btnTraduction = document.getElementById('btn-traduction-globale');
+        if (btnTraduction) {
+          btnTraduction.textContent = "✅ Traduction intégrée avec succès !";
+          btnTraduction.setAttribute('disabled', 'true');
+          btnTraduction.style.borderColor = '#3d4146';
+        }
+      }
+
       if (upgradePierreAchetee) {
         document.getElementById('bloc-pierre').style.display = 'flex';
         document.getElementById('zone-pierre').style.display = 'flex';
@@ -5215,7 +5259,6 @@ let controlesEspaceConfigures = false;
         genererEtoilesVitesse();
       }
 
-      // Re-générer les ouvriers sur la planète
       document.getElementById('chats-conteneur-bois').innerHTML = "";
       document.getElementById('chats-conteneur-pierre').innerHTML = "";
       document.getElementById('chats-conteneur-energie').innerHTML = "";
@@ -5223,15 +5266,12 @@ let controlesEspaceConfigures = false;
       for (let i = 1; i <= nbMineurs; i++) ajouterUnChatOuvrierSurPlanete('pierre', i, 'images/minichat-mineur.png');
       for (let i = 1; i <= nbCentrales; i++) ajouterUnChatOuvrierSurPlanete('energie', i, 'images/minichat-elec.png');
 
-      // Re-générer les satellites visuels et drapeaux
       document.getElementById('cont-pivots-satellites').innerHTML = "";
       for (let i = 1; i <= nbSatellites; i++) ajouterUnSatelliteGraphique(i);
-      
       for (let p in colonisation) {
         if (colonisation[p].drapeauPose) creerDrapeauVisuelSurPlanete(p);
       }
 
-      // Recalage visuel de la Sphère de Dyson
       const imgSoleil = document.getElementById('img-soleil');
       if (imgSoleil && etapeDyson > 0) {
         imgSoleil.src = `images/espace/soleil_etape${etapeDyson}.png`;
