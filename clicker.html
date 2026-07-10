@@ -4954,10 +4954,9 @@ let controlesEspaceConfigures = false;
   }
 
   function synchroniserVraieHeureInternet() {
-    // 🌟 On s'appelle soi-même ! Pas d'API externe, pas de blocage possible.
+    // On s'appelle soi-même sur Netlify pour choper l'en-tête HTTP 'Date'
     fetch(window.location.href, { method: 'HEAD' })
       .then(res => {
-        // Netlify injecte obligatoirement un en-tête 'Date' avec l'heure exacte de son serveur
         const dateHeader = res.headers.get('Date');
         if (!dateHeader) throw new Error("Pas d'en-tête Date");
         
@@ -4966,7 +4965,12 @@ let controlesEspaceConfigures = false;
         
         // Calcul du décalage
         decalageHeureReelleMs = vraieDateInternet.getTime() - heurePC.getTime();
-        console.log(`[SYNCHRO] Horloge synchronisée via le serveur Netlify. Décalage : ${decalageHeureReelleMs}ms`);
+
+        // 🌟 AFFICHAGE UNIQUE ICI :
+        console.log(`[SYNCHRO] Horloge synchronisée avec le serveur !`);
+        console.log(` -> Heure du PC : ${heurePC.toLocaleTimeString()}`);
+        console.log(` -> Heure Réelle: ${vraieDateInternet.toLocaleTimeString()}`);
+        console.log(` -> Décalage    : ${decalageHeureReelleMs}ms`);
 
         // Alerte popup si l'heure du PC est déréglée de plus de 3 minutes
         if (Math.abs(decalageHeureReelleMs) > 180000) {
@@ -4979,7 +4983,6 @@ let controlesEspaceConfigures = false;
         }
       })
       .catch(error => {
-        // En cas de secours ultime (mode hors-ligne total)
         console.log("[SYNCHRO] Mode local activé. Protection anti-triche matérielle active.");
         decalageHeureReelleMs = 0;
       });
