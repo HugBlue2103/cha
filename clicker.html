@@ -3574,13 +3574,13 @@ function mettreAjourInterface() {
   }
 
   function actualiserMiniJeuFusee() {
-    // 🌟 SÉCURITÉ POST-LANCEMENT : Si la fusée a déjà décollé, elle reste affichée en permanence !
+    // 🌟 SÉCURITÉ FIXE : Si la fusée a déjà décollé, elle RESTE visible et assemblée en permanence !
     if (etatFusee.lancee) {
       document.getElementById('zone-pieces-au-sol').style.display = 'none';
       document.getElementById('piece-posee-moteur').style.display = 'block';
       document.getElementById('piece-posee-reservoir').style.display = 'block';
       document.getElementById('piece-posee-cockpit').style.display = 'block';
-      return; // On stoppe ici, pas besoin de vérifier le puzzle
+      return; 
     }
 
     const pMoteur = document.getElementById('puzzle-moteur');
@@ -5166,15 +5166,16 @@ let controlesEspaceConfigures = false;
     console.log("[SAUVEGARDE] Partie enregistrée automatiquement et sécurisée.");
   }
 
-  // 📂 Fonction de chargement modifiée
+  // 📂 Fonction de chargement globale et unifiée
   function chargerProgression() {
     const chaineDonnees = localStorage.getItem('cha_save_data');
     const hashEnregistre = localStorage.getItem('cha_save_hash');
 
     if (!chaineDonnees || !hashEnregistre) return;
 
+    // Vérification anti-triche
     if (genererHashSauvegarde(chaineDonnees) !== hashEnregistre) {
-      console.warn("[SÉCURITÉ] Sauvegarde corrompue ! Réinitialisation.");
+      console.warn("[SÉCURITÉ] Sauvegarde corrompue ou modifiée manuellement ! Réinitialisation.");
       localStorage.removeItem('cha_save_data');
       localStorage.removeItem('cha_save_hash');
       return;
@@ -5183,6 +5184,7 @@ let controlesEspaceConfigures = false;
     try {
       const charge = JSON.parse(chaineDonnees);
       
+      // Restauration des variables d'état
       ressources = charge.ressources;
       clics = charge.clics;
       multiplicateursPassifs = charge.multiplicateursPassifs;
@@ -5219,7 +5221,7 @@ let controlesEspaceConfigures = false;
       modeFuseeActuel = charge.modeFuseeActuel || "normale";
       cielMystereActif = charge.cielMystereActif || false;
 
-      // 🌟 APPLIQUE LES TUTOS ET LA TRADUCTION DEPUIS LA SAUVEGARDE
+      // 🌟 RESTAURATION DES TUTOS ET DE LA TRADUCTION GLYPHES
       etapeTutoRotateOk = charge.etapeTutoRotateOk || false;
       etapeTutoClicOk = charge.etapeTutoClicOk || false;
       tutoObservationFait = charge.tutoObservationFait || false;
@@ -5242,6 +5244,7 @@ let controlesEspaceConfigures = false;
         }
       }
 
+      // Reconstitution visuelle de l'interface et des éléments débloqués
       if (upgradePierreAchetee) {
         document.getElementById('bloc-pierre').style.display = 'flex';
         document.getElementById('zone-pierre').style.display = 'flex';
@@ -5259,6 +5262,33 @@ let controlesEspaceConfigures = false;
         genererEtoilesVitesse();
       }
 
+      // 🚀 RECONSTITUTION VISUELLE COMPLÈTE DE LA FUSÉE AU SOL
+      if (etatFusee.moteurPose) document.getElementById('piece-posee-moteur').style.display = 'block';
+      if (etatFusee.reservoirPose) document.getElementById('piece-posee-reservoir').style.display = 'block';
+      if (etatFusee.cockpitPose) document.getElementById('piece-posee-cockpit').style.display = 'block';
+
+      // Calage immédiat du bon mode (Normale ou Interstellaire) pour les hangars et boutons de la boutique
+      const hangarNormale = document.getElementById('couches-fusee-normale');
+      const hangarInter = document.getElementById('couches-fusee-interstellaire');
+      const boutiqueNormale = document.getElementById('boutique-fusee');
+      const boutiqueInter = document.getElementById('boutique-fusee-interstellaire');
+      const btnSwitch = document.getElementById('btn-switch-fusee');
+
+      if (modeFuseeActuel === "interstellaire") {
+        if (btnSwitch) btnSwitch.textContent = "<- Mode: Normale";
+        if (hangarNormale) hangarNormale.style.display = 'none';
+        if (hangarInter) hangarInter.style.display = 'block';
+        if (boutiqueNormale) boutiqueNormale.style.display = 'none';
+        if (boutiqueInter) boutiqueInter.style.display = 'block';
+      } else {
+        if (btnSwitch) btnSwitch.textContent = "Mode: Interstellaire ->";
+        if (hangarNormale) hangarNormale.style.display = 'block';
+        if (hangarInter) hangarInter.style.display = 'none';
+        if (boutiqueNormale) boutiqueNormale.style.display = 'block';
+        if (boutiqueInter) boutiqueInter.style.display = 'none';
+      }
+
+      // Re-générer les ouvriers sur la planète
       document.getElementById('chats-conteneur-bois').innerHTML = "";
       document.getElementById('chats-conteneur-pierre').innerHTML = "";
       document.getElementById('chats-conteneur-energie').innerHTML = "";
@@ -5266,16 +5296,23 @@ let controlesEspaceConfigures = false;
       for (let i = 1; i <= nbMineurs; i++) ajouterUnChatOuvrierSurPlanete('pierre', i, 'images/minichat-mineur.png');
       for (let i = 1; i <= nbCentrales; i++) ajouterUnChatOuvrierSurPlanete('energie', i, 'images/minichat-elec.png');
 
+      // Re-générer les satellites visuels et drapeaux
       document.getElementById('cont-pivots-satellites').innerHTML = "";
       for (let i = 1; i <= nbSatellites; i++) ajouterUnSatelliteGraphique(i);
       for (let p in colonisation) {
         if (colonisation[p].drapeauPose) creerDrapeauVisuelSurPlanete(p);
       }
 
+      // Recalage visuel de la Sphère de Dyson
       const imgSoleil = document.getElementById('img-soleil');
       if (imgSoleil && etapeDyson > 0) {
         imgSoleil.src = `images/espace/soleil_etape${etapeDyson}.png`;
         imgSoleil.style.filter = etapeDyson === 4 ? "drop-shadow(0 0 25px #7CFC6E) drop-shadow(0 0 50px #000)" : `drop-shadow(0 0 ${10 + etapeDyson * 5}px var(--accent))`;
+      }
+
+      // Lancement automatique du mini-jeu d'assemblage si un kit est en cours
+      if (etatFusee.kitAchete && !etatFusee.lancee) {
+        actualiserMiniJeuFusee();
       }
 
       console.log("[CHARGEMENT] Progression récupérée avec succès !");
