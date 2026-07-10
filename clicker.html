@@ -1385,7 +1385,16 @@ window.addEventListener('DOMContentLoaded', () => {
   let valeursTesteesRatio = [];
   let valeursTesteesPuissance = [];
   let valeursTesteesAngle = [];
+
   let decalageHeureReelleMs = 0;
+
+  // 🌟 NOUVELLE FONCTION CENTRALE POUR TOUT LE SCRIPT
+  function obtenirDateFrancaiseReelle() {
+    const tempsPcActuel = Date.now();
+    const maintenantRaw = new Date(tempsPcActuel + decalageHeureReelleMs); 
+    const dateFrStr = maintenantRaw.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
+    return new Date(dateFrStr);
+  }
 
   // 🔄 CONFIGURATION DE LA ROTATION DES PLANÈTES (Degrés par jour virtuel)
   // Plus elles sont proches du soleil, plus elles vont vite !
@@ -2247,7 +2256,7 @@ function mettreAjourInterface() {
 
     // === 2. CALCUL ET AFFICHAGE DU TPS (AVEC HAPPY HOUR RÉELLE) ===
     let multiplicateurHappyHour = 1.0;
-    const maintenant = new Date();
+    const maintenant = obtenirDateFrancaiseReelle();
     const heureReelleActuelle = maintenant.getHours();
     // 🕒 Happy Hour active de 20h00 à 23h59
     if (happyHourAchete && heureReelleActuelle >= 20 && heureReelleActuelle < 24) {
@@ -2526,15 +2535,10 @@ function mettreAjourInterface() {
     }
     dernierTempsPcEnregistre = tempsPcActuel;
 
-    // Application du décalage de base
-    let maintenantRaw = new Date(tempsPcActuel + decalageHeureReelleMs); 
+    // 🌟 CORRECTION ICI : Utilisation de notre fonction synchronisée et localisée en France
+    let maintenant = obtenirDateFrancaiseReelle();
 
-    // 🌟 FORCE LE FUSEAU HORAIRE DE LA FRANCE SUR L'OBJET DATE ENTIER
-    // On convertit la date brute en une chaîne calée sur Paris, puis on recrée un objet Date propre
-    const dateFrStr = maintenantRaw.toLocaleString('en-US', { timeZone: 'Europe/Paris' });
-    let maintenant = new Date(dateFrStr);
-
-    // Extraction des heures pour l'Happy Hour
+    // Extraction des heures pour l'Happy Hour et le calendrier
     let heureReelleActuelle = maintenant.getHours(); 
     const secondesReelles = maintenant.getSeconds();
     
@@ -2913,7 +2917,8 @@ function mettreAjourInterface() {
     const vueEspace = document.getElementById('vue-espace'); 
     const fondEtoilesEspace = document.getElementById('fond-etoiles-espace'); 
 
-    const heure = new Date().getHours();
+    const maintenant = obtenirDateFrancaiseReelle();
+    const heure = maintenant.getHours();
     let couleurFond = ""; 
     let estLaNuit = false;
 
