@@ -2516,13 +2516,14 @@ function mettreAjourInterface() {
   setInterval(() => {
     const tempsPc = new Date().getTime();
     
-    // 🌟 CORRECTION : On utilise "let" pour s'assurer que la variable est modifiable
-    let maintenant = new Date(tempsPc + decalageHeureReelleMs); 
+    // Application du décalage protecteur
+    let maintenant = new Date(tempsPcActuel + decalageHeureReelleMs); 
+
+    // 🌟 EXTRACTION SÉCURISÉE DE L'HEURE FRANÇAISE POUR L'HAPPY HOUR ET LE VISUEL
+    const heureFrStr = maintenant.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false });
+    let heureReelleActuelle = parseInt(heureFrStr, 10); 
     
     const secondesReelles = maintenant.getSeconds();
-    
-    // 🌟 CORRECTION : On utilise aussi "let" ici au cas où ton code la réassigne plus bas
-    let heureReelleActuelle = maintenant.getHours();
     
     // 🌍 SYNCHRO TEMPS VIRTUEL COMPACTE (1 jour unique par tranche de 10s réelle)
     const trancheActuelle = Math.floor(secondesReelles / 10) * 10;
@@ -4966,10 +4967,13 @@ let controlesEspaceConfigures = false;
         // Calcul du décalage
         decalageHeureReelleMs = vraieDateInternet.getTime() - heurePC.getTime();
 
-        // 🌟 AFFICHAGE UNIQUE ICI :
+        // 🌟 CONFIGURATION DU FUSEAU HORAIRE FRANÇAIS
+        const optionsFrance = { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+        // 🌟 AFFICHAGE UNIQUE CORRIGÉ :
         console.log(`[SYNCHRO] Horloge synchronisée avec le serveur !`);
         console.log(` -> Heure du PC : ${heurePC.toLocaleTimeString()}`);
-        console.log(` -> Heure Réelle: ${vraieDateInternet.toLocaleTimeString()}`);
+        console.log(` -> Heure Réelle (FR) : ${vraieDateInternet.toLocaleTimeString('fr-FR', optionsFrance)}`);
         console.log(` -> Décalage    : ${decalageHeureReelleMs}ms`);
 
         // Alerte popup si l'heure du PC est déréglée de plus de 3 minutes
