@@ -740,6 +740,11 @@
         <div class="onglet" id="tab-fusee" style="display:none;">Fusée</div>
         <div class="onglet" id="tab-espace" style="display:none;">Espace</div>
         <div class="onglet" id="tab-voyage" style="display:none;">Voyage Final</div>
+
+        <button id="btn-sauvegarde-manuelle" style="margin-left: auto; background: #2a2c2f; border: 1px solid var(--accent); color: white; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer; transition: background 0.2s;">
+          Sauvegarder
+        </button>
+
       </div>
 
       <div class="affichage-ressources">
@@ -1198,6 +1203,9 @@
   <p style="font-size: 36px; max-width: 850px; line-height: 1.5; font-family: 'AlphabetCHA', sans-serif !important;">
     Tu penses pas que les pages ont chaud ?
   </p>
+  <div id="indice-chiffre-secret" style="color: white !important; font-size: 28px; font-family: sans-serif !important; margin-top: 15px; user-select: text !important; text-shadow: none !important;">
+        5
+  </div>
 </div>
 
 <script>
@@ -1396,6 +1404,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const SECRET_KEY_SAVE = "ChaCosmicVaultKey2026"; // Clé pour générer le hash anti-triche
   let intervalleSauvegardeAuto = null;
 
+  let premiereFoisOngletEspace = true;
+  let premiereFoisOngletVoyage = true;
+
   // 🌟 NOUVELLE FONCTION CENTRALE POUR TOUT LE SCRIPT
   function obtenirDateFrancaiseReelle() {
     const tempsPcActuel = Date.now();
@@ -1435,14 +1446,17 @@ window.addEventListener('DOMContentLoaded', () => {
     "sons/ambiance/Wanderstop.mp3",
     "sons/ambiance/Friends.mp3",
     "sons/ambiance/boruto.mp3",
+    "sons/ambiance/musique_accueil.mp3",
     // 💡 Tu peux ajouter autant de musiques que tu veux ici !
   ];
 
   let musiqueFond = null;
   let indexMusiqueActuelle = -1;
+  let enModeMusiqueSpeciale = false;
+  const VOLUME_MAX_CIBLE = 0.25;
 
   function lancerPlaylistAleatoire() {
-    if (PLAYLIST_MUSIQUES.length === 0) return;
+    if (PLAYLIST_MUSIQUES.length === 0 || enModeMusiqueSpeciale) return;
 
     // Choix d'un index au hasard différent de la musique qui vient de se terminer
     let nouvelIndex = indexMusiqueActuelle;
@@ -1459,35 +1473,90 @@ window.addEventListener('DOMContentLoaded', () => {
     // Si l'objet audio n'existe pas encore, on le crée
     if (!musiqueFond) {
       musiqueFond = new Audio();
-      musiqueFond.volume = 0.4; 
-
-      // 🔄 ÉVÉNEMENT MAGIQUE : Dès que le morceau se termine, on relance automatiquement une autre musique
-      musiqueFond.addEventListener('ended', () => {
-        lancerPlaylistAleatoire();
-      });
     }
+
+    musiqueFond.onended = null;
+    musiqueFond.onended = () => {
+      lancerPlaylistAleatoire();
+    };
 
     // Chargement du fichier mp3 pioché et lecture
     musiqueFond.src = PLAYLIST_MUSIQUES[indexMusiqueActuelle];
-    musiqueFond.play().catch(err => {
-      console.log("[AUDIO] Lecture bloquée par le navigateur. En attente du premier clic du joueur.");
-    });
-    
-    console.log(`[AUDIO] Lecture en cours : ${PLAYLIST_MUSIQUES[indexMusiqueActuelle]}`);
+    musiqueFond.volume = VOLUME_MAX_CIBLE;
+    musiqueFond.play();
+  }
+
+  function changerMusiqueTemporaire(cheminMusiqueSpeciale) {
+    if (!musiqueFond) {
+      musiqueFond = new Audio();
+      musiqueFond.volume = VOLUME_MAX_CIBLE;
+    }
+
+    // 1. On active le mode spécial pour figer la playlist automatique
+    enModeMusiqueSpeciale = true;
+
+    // 2. 🎚️ TRANSITION EN FADE-OUT (Baisse progressive du volume)
+    let volumeActuel = musiqueFond.volume;
+    const intervalleFade = setInterval(() => {
+      if (volumeActuel > 0.05) {
+        volumeActuel -= 0.05; // On baisse le volume par petits paliers
+        musiqueFond.volume = Math.max(0, volumeActuel);
+      } else {
+        // Le fade-out est fini ! On coupe complètement l'ancien morceau
+        clearInterval(intervalleFade);
+        musiqueFond.pause();
+
+        // 3. On injecte la nouvelle musique spéciale et on rétablit le volume
+        musiqueFond.src = cheminMusiqueSpeciale;
+        musiqueFond.volume = VOLUME_MAX_CIBLE; // On remet le volume normal pour la nouvelle musique
+
+        musiqueFond.onended = null;
+        musiqueFond.onended = () => {
+          // Dès que la musique spéciale se termine, on retire le mode spécial et on remet la playlist
+          enModeMusiqueSpeciale = false;
+          lancerPlaylistAleatoire();
+        };
+
+        musiqueFond.play();
+      }
+    }, 100); // Toutes les 50ms (soit environ 400ms à 800ms pour un fondu complet et fluide)
   }
 
   const SON_ACHAT = new Audio("sons/click.mp3");
   const SON_CLIC_BOIS = new Audio("sons/hache_bois.mp3");
-  const SON_CLIC_PIERRE = new Audio("sons/pierre.mp3");
+  const SON_CLIC_PIERRE = new Audio("sons/mine.mp3");
   const SON_CLIC_ELEC = new Audio("sons/elec.mp3");
   const SON_ACHAT_CHAT = new Audio("sons/achat_chat.mp3");
+  const SON_UPGRADE = new Audio("sons/upgrade.mp3");
+  const SON_BUILDING = new Audio("sons/building.mp3");
+  const SON_SUCCES = new Audio("sons/succes.mp3");
+  const SON_ECHEC = new Audio("sons/erreur.mp3");
+  const SON_LIER = new Audio("sons/relier.mp3");
+  const SON_DELIER = new Audio("sons/delier.mp3");
+  const SON_REUSSITE_ETOILE = new Audio("sons/reussite_etoile.mp3");
+  const SON_PAGE = new Audio("sons/page.mp3");
+  const SON_PUZZLE = new Audio("sons/puzzle.mp3");
+  const SON_ROCKET = new Audio("sons/rocket.mp3");
+  const SON_EXPLOSION = new Audio("sons/explosion.mp3");
+  const SON_VENT = new Audio("sons/vent.mp3");
 
-  SON_CLIC_BOIS.volume = 0.5;
-  SON_CLIC_PIERRE.volume = 0.5;
-  SON_CLIC_ELEC.volume = 0.5;
-  SON_ACHAT.volume = 0.6;
-  SON_ACHAT_CHAT.volume = 0.6;
-
+  SON_CLIC_BOIS.volume = 0.4;
+  SON_CLIC_PIERRE.volume = 0.4;
+  SON_CLIC_ELEC.volume = 0.4;
+  SON_ACHAT.volume = 0.5;
+  SON_ACHAT_CHAT.volume = 0.5;
+  SON_UPGRADE.volume = 0.5;
+  SON_BUILDING.volume = 0.5;
+  SON_SUCCES.volume = 0.5;
+  SON_ECHEC.volume = 0.5;
+  SON_LIER.volume = 0.5;
+  SON_DELIER.volume = 0.5;
+  SON_REUSSITE_ETOILE.volume = 0.5;
+  SON_PAGE.volume = 1;
+  SON_PUZZLE.volume = 0.5;
+  SON_ROCKET.volume = 0.5;
+  SON_EXPLOSION.volume = 0.5;
+  SON_VENT.volume = 0.5;
 
   window.ouvrirNotificationCHA = function(titre, texte, actionAuClic = null, texteBoutonPrincipal = "Fermer", avecBoutonAnnuler = false) {
     const modalNotif = document.getElementById('modal-notification-custom');
@@ -1517,6 +1586,8 @@ window.addEventListener('DOMContentLoaded', () => {
     btnFermer.parentNode.replaceChild(nouveauBouton, btnFermer);
 
     nouveauBouton.addEventListener('click', () => {
+      SON_ACHAT.currentTime = 0;
+      SON_ACHAT.play();
       modalNotif.style.display = 'none';
       if (actionAuClic && typeof actionAuClic === 'function') {
         actionAuClic(); 
@@ -1654,7 +1725,7 @@ window.addEventListener('DOMContentLoaded', () => {
       achete: () => upgradesActivees.bois1,
       // N'apparaît que si on a acheté au moins 1 bûcheron et qu'on ne l'a pas déjà validée
       condition: () => nbBucherons >= 1 && !upgradesActivees.bois1,
-      action: () => { clics.bois += 1; upgradesActivees.bois1 = true; }
+      action: () => { clics.bois += 1; upgradesActivees.bois1 = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-pierre-1", zone: "ameliorations-terre", type: "amelioration", unique: true,
@@ -1669,8 +1740,10 @@ window.addEventListener('DOMContentLoaded', () => {
           upgradePierreAchetee = true;
           document.getElementById('bloc-pierre').style.display = 'flex'; 
           document.getElementById('zone-pierre').style.display = 'flex'; 
+          SON_BUILDING.currentTime = 0; SON_BUILDING.play();
         } else {
-          clics.pierre += 1; upgradesActivees.pierre1 = true; 
+          clics.pierre += 1; upgradesActivees.pierre1 = true;
+          SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
         }
       }
     },
@@ -1681,7 +1754,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: 1000 }),
       achete: () => upgradeTradAchetee,
       condition: () => nbBucherons >= 10 && !upgradeTradAchetee,
-      action: () => { upgradeTradAchetee = true; document.getElementById('tab-trad').style.display = 'block'; }
+      action: () => { upgradeTradAchetee = true; document.getElementById('tab-trad').style.display = 'block'; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-bois-2", zone: "ameliorations-terre", type: "amelioration", unique: true,
@@ -1690,7 +1763,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: 1500, pierre: 1000 }),
       achete: () => upgradesActivees.bois2,
       condition: () => upgradesActivees.bois1 && nbBucherons >= 20 && !upgradesActivees.bois2,
-      action: () => { clics.bois += 5; multiplicateursPassifs.bois *= 1.5; upgradesActivees.bois2 = true; }
+      action: () => { clics.bois += 5; multiplicateursPassifs.bois *= 1.5; upgradesActivees.bois2 = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-observatoire", zone: "ameliorations-terre", type: "amelioration", unique: true,
@@ -1699,7 +1772,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: 1500, pierre: 1500 }),
       achete: () => upgradeObservAchetee,
       condition: () => nbMineurs >= 10 && !upgradeObservAchetee,
-      action: () => { upgradeObservAchetee = true; document.getElementById('tab-observ').style.display = 'block'; }
+      action: () => { upgradeObservAchetee = true; document.getElementById('tab-observ').style.display = 'block'; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-pierre-2", zone: "ameliorations-terre", type: "amelioration", unique: true,
@@ -1709,7 +1782,7 @@ window.addEventListener('DOMContentLoaded', () => {
       achete: () => upgradesActivees.pierre2,
       // Ta règle stricte : n'apparaît que si Pierre I est achetée ET qu'on a le palier des 20 mineurs
       condition: () => upgradesActivees.pierre1 && nbMineurs >= 20 && !upgradesActivees.pierre2,
-      action: () => { clics.pierre += 5; multiplicateursPassifs.pierre *= 1.5; upgradesActivees.pierre2 = true; }
+      action: () => { clics.pierre += 5; multiplicateursPassifs.pierre *= 1.5; upgradesActivees.pierre2 = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-elec-1", zone: "ameliorations-terre", type: "amelioration", unique: true,
@@ -1718,7 +1791,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: 10000, pierre: 10000, energie: 10000 }),
       achete: () => upgradesActivees.elec1,
       condition: () => planCentraleAchete && !upgradesActivees.elec1,
-      action: () => { clics.energie += 5; multiplicateursPassifs.energie *= 1.5; upgradesActivees.elec1 = true; }
+      action: () => { clics.energie += 5; multiplicateursPassifs.energie *= 1.5; upgradesActivees.elec1 = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     {
@@ -1734,6 +1807,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Débloque l'affichage de la ressource Énergie
         document.getElementById('bloc-energie').style.display = 'flex'; 
         document.getElementById('zone-energie').style.display = 'flex';
+        SON_BUILDING.currentTime = 0; SON_BUILDING.play();
       }
     },
 
@@ -1785,6 +1859,8 @@ window.addEventListener('DOMContentLoaded', () => {
           nbSatellites++; 
           ajouterUnSatelliteGraphique(nbSatellites);
           mettreAjourBrouillardSpatial();
+          SON_VENT.currentTime = 0;
+          SON_VENT.play();
         }
       }
     },
@@ -1836,6 +1912,7 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (etapeDyson === 4) multiplicateursPassifs.energie += 10000000; // +10 Millions élec/s !
 
         mettreAjourInterface();
+        SON_BUILDING.currentTime = 0; SON_BUILDING.play();
       }
     },
 
@@ -1847,7 +1924,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ connaissance: 10 }), 
       achete: () => techActivees.livre,
       condition: () => nbEtudiants >= 1 && !techActivees.livre,
-      action: () => { techActivees.livre = true; document.getElementById('btn-ouvrir-livre').style.display = 'block'; }
+      action: () => { techActivees.livre = true; document.getElementById('btn-ouvrir-livre').style.display = 'block'; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-tech-lentilles", zone: "ameliorations-espace", type: "amelioration", unique: true,
@@ -1856,7 +1933,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ connaissance: 250 }), 
       achete: () => techActivees.lentilles,
       condition: () => nbEtudiants >= 10 && !techActivees.lentilles,
-      action: () => { techActivees.lentilles = true; actualiserPositionsCiel();}
+      action: () => { techActivees.lentilles = true; actualiserPositionsCiel(); SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-tech-brevet", zone: "ameliorations-espace", type: "amelioration", unique: true,
@@ -1865,6 +1942,7 @@ window.addEventListener('DOMContentLoaded', () => {
       condition: () => nbAstronomes >= 1 && !techActivees.brevet,
       action: () => { 
         techActivees.brevet = true; 
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
       }
     },
     // ==========================================
@@ -1878,7 +1956,7 @@ window.addEventListener('DOMContentLoaded', () => {
       achete: () => techActivees.foret2,
       // 🌟 Correction : Demande simplement le brevet d'électricité (Base II optionnel ou géré ici)
       condition: () => techActivees.brevet && !techActivees.foret2,
-      action: () => { techActivees.foret2 = true; clics.bois += 5; multiplicateursPassifs.bois *= 1.5; }
+      action: () => { techActivees.foret2 = true; clics.bois += 5; multiplicateursPassifs.bois *= 1.5; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-tech-mine2", zone: "ameliorations-espace", type: "amelioration", unique: true,
@@ -1888,7 +1966,7 @@ window.addEventListener('DOMContentLoaded', () => {
       achete: () => techActivees.mine2,
       // 🌟 Correction : Demande simplement le brevet d'électricité
       condition: () => techActivees.brevet && !techActivees.mine2,
-      action: () => { techActivees.mine2 = true; clics.pierre += 5; multiplicateursPassifs.pierre *= 1.5; }
+      action: () => { techActivees.mine2 = true; clics.pierre += 5; multiplicateursPassifs.pierre *= 1.5; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-tech-elec2", zone: "ameliorations-espace", type: "amelioration", unique: true,
@@ -1898,7 +1976,7 @@ window.addEventListener('DOMContentLoaded', () => {
       achete: () => techActivees.elec2,
       // 🌟 CONDITION : Demande le brevet ET que le bouton terrestre de base (btn-up-elec-1) soit acheté
       condition: () => techActivees.brevet && upgradesActivees.elec1 && !techActivees.elec2,
-      action: () => { techActivees.elec2 = true; multiplicateursPassifs.energie *= 2; }
+      action: () => { techActivees.elec2 = true; multiplicateursPassifs.energie *= 2; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     // ==========================================
@@ -1915,7 +1993,8 @@ window.addEventListener('DOMContentLoaded', () => {
       action: () => { 
         clics.bois += 50; 
         multiplicateursPassifs.bois += 2500; 
-        upgradesActivees.boisQuantique = true; 
+        upgradesActivees.boisQuantique = true;
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
       }
     },
     {
@@ -1930,6 +2009,7 @@ window.addEventListener('DOMContentLoaded', () => {
         clics.pierre += 100; 
         multiplicateursPassifs.pierre += 5000; 
         upgradesActivees.pierreQuantique = true; 
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
       }
     },
     {
@@ -1947,6 +2027,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (tabFuseeElement) {
           tabFuseeElement.style.display = 'block';
         }
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
       }
     },
 
@@ -1957,7 +2038,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ connaissance: 1500 }), 
       achete: () => techActivees.meditation,
       condition: () => etatFusee.lancee && !techActivees.meditation,
-      action: () => { techActivees.meditation = true; }
+      action: () => { techActivees.meditation = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     {
@@ -1967,7 +2048,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ connaissance: 10000 }), 
       achete: () => happyHourAchete,
       condition: () => etoileDecouverte && !happyHourAchete,
-      action: () => { happyHourAchete = true; }
+      action: () => { happyHourAchete = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     // ==========================================
@@ -1979,7 +2060,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ pierre: 50000, bois: 10000, energie: 5000 }), achete: () => etatFusee.pasDeTir,
       // 🌟 Étape 1 : Disponible d'office
       condition: () => !etatFusee.pasDeTir,
-      action: () => { etatFusee.pasDeTir = true; }
+      action: () => { etatFusee.pasDeTir = true; SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-inv-mot", zone: "inventions-fusee", type: "amelioration", unique: true,
@@ -1987,7 +2068,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: 50000, pierre: 30000 }), achete: () => etatFusee.moteur,
       // 🌟 Étape 2 : Requiert le Pas de Tir
       condition: () => etatFusee.pasDeTir && !etatFusee.moteur,
-      action: () => { etatFusee.moteur = true; }
+      action: () => { etatFusee.moteur = true; SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-inv-res", zone: "inventions-fusee", type: "amelioration", unique: true,
@@ -1995,7 +2076,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ bois: 75000, energie: 25000 }), achete: () => etatFusee.reservoir,
       // 🌟 Étape 3 : Requiert le Moteur
       condition: () => etatFusee.moteur && !etatFusee.reservoir,
-      action: () => { etatFusee.reservoir = true; }
+      action: () => { etatFusee.reservoir = true; SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-inv-ordi", zone: "inventions-fusee", type: "amelioration", unique: true,
@@ -2003,7 +2084,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: 100000, connaissance: 5000 }), achete: () => etatFusee.ordi,
       // 🌟 Étape 4 : Requiert le Réservoir
       condition: () => etatFusee.reservoir && !etatFusee.ordi,
-      action: () => { etatFusee.ordi = true; }
+      action: () => { etatFusee.ordi = true; SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-achat-kit", zone: "inventions-fusee", type: "amelioration", unique: false,
@@ -2015,6 +2096,7 @@ window.addEventListener('DOMContentLoaded', () => {
         etatFusee.kitAchete = true; 
         etatFusee.piecesAssemblees = 0;
         preparerMiniJeuFusee();
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
       }
     },
 
@@ -2028,7 +2110,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: 10000, pierre: 5000 }), 
       achete: () => upgradesFusee.croquettes,
       condition: () => etatFusee.lancee && !upgradesFusee.croquettes,
-      action: () => { upgradesFusee.croquettes = true; } // Géré dynamiquement au lancement
+      action: () => { upgradesFusee.croquettes = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();} // Géré dynamiquement au lancement
     },
     {
       id: "btn-up-plasma", zone: "ameliorations-fusee", type: "amelioration", unique: true,
@@ -2037,7 +2119,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: 50000, roches: 500 }), 
       achete: () => upgradesFusee.plasma,
       condition: () => upgradesFusee.croquettes && !upgradesFusee.plasma,
-      action: () => { upgradesFusee.plasma = true; }
+      action: () => { upgradesFusee.plasma = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-hyperpropulsion", zone: "ameliorations-fusee", type: "amelioration", unique: true,
@@ -2046,7 +2128,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ energie: 250000, roches: 5000 }), 
       achete: () => upgradesFusee.hyperpropulsion,
       condition: () => upgradesFusee.plasma && !upgradesFusee.hyperpropulsion,
-      action: () => { upgradesFusee.hyperpropulsion = true; }
+      action: () => { upgradesFusee.hyperpropulsion = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-distorsion", zone: "ameliorations-fusee", type: "amelioration", unique: true,
@@ -2055,7 +2137,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ connaissance: 50000, roches: 25000 }), 
       achete: () => upgradesFusee.distorsion,
       condition: () => upgradesFusee.hyperpropulsion && !upgradesFusee.distorsion,
-      action: () => { upgradesFusee.distorsion = true; }
+      action: () => { upgradesFusee.distorsion = true; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     {
@@ -2063,7 +2145,7 @@ window.addEventListener('DOMContentLoaded', () => {
       titre: () => "Soute Allégée", desc: () => "Gain Roches +25%",
       prix: () => ({ bois: 25000 }), achete: () => upgradesFusee.soute,
       condition: () => etatFusee.lancee && !upgradesFusee.soute,
-      action: () => { upgradesFusee.soute = true; multiplicateursPassifs.roches *= 1.25; }
+      action: () => { upgradesFusee.soute = true; multiplicateursPassifs.roches *= 1.25; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-up-compresseur", zone: "ameliorations-fusee", type: "amelioration", unique: true,
@@ -2071,7 +2153,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // 🌟 CORRECTIF : Utilise bien la clé 'roches'
       prix: () => ({ energie: 100000, roches: 1000 }), achete: () => upgradesFusee.compresseur,
       condition: () => upgradesFusee.soute && !upgradesFusee.compresseur,
-      action: () => { upgradesFusee.compresseur = true; multiplicateursPassifs.roches *= 2.0; }
+      action: () => { upgradesFusee.compresseur = true; multiplicateursPassifs.roches *= 2.0; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
 
     // --- SUITE DES AMÉLIORATIONS DE RECOLTE (III & IV) ---
@@ -2085,7 +2167,8 @@ window.addEventListener('DOMContentLoaded', () => {
       condition: () => upgradesFusee.compresseur && !upgradesFusee.extracteur,
       action: () => { 
         upgradesFusee.extracteur = true; 
-        multiplicateursPassifs.roches *= 2.5; 
+        multiplicateursPassifs.roches *= 2.5;
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
       }
     },
     {
@@ -2098,7 +2181,8 @@ window.addEventListener('DOMContentLoaded', () => {
       condition: () => upgradesFusee.extracteur && !upgradesFusee.moissonneuse,
       action: () => { 
         upgradesFusee.moissonneuse = true; 
-        multiplicateursPassifs.roches *= 6.0; 
+        multiplicateursPassifs.roches *= 6.0;
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
       }
     },
 
@@ -2112,7 +2196,7 @@ window.addEventListener('DOMContentLoaded', () => {
       qte: () => colonisation.luna.niveau,
       // 🛰️ Condition : Fusée lancée ET au moins 1 satellite déployé (révèle Luna)
       condition: () => etatFusee.lancee && nbSatellites >= 1 && !colonisation.luna.enVoyage,
-      action: () => { lancerFuseeColonisation('luna', 3); }
+      action: () => { lancerFuseeColonisation('luna', 3); SON_ROCKET.currentTime = 0; SON_ROCKET.play();}
     },
     {
       id: "btn-col-croquetis", zone: "infrastructure-espace", type: "batiment",
@@ -2123,7 +2207,7 @@ window.addEventListener('DOMContentLoaded', () => {
       qte: () => colonisation.croquetis.niveau,
       // 🛰️ Condition : Vitesse I ET au moins 5 satellites (révèle Croquetis)
       condition: () => upgradesFusee.croquettes && nbSatellites >= 5 && !colonisation.croquetis.enVoyage,
-      action: () => { lancerFuseeColonisation('croquetis', 7); }
+      action: () => { lancerFuseeColonisation('croquetis', 7); SON_ROCKET.currentTime = 0; SON_ROCKET.play();}
     },
     {
       id: "btn-col-ronronis", zone: "infrastructure-espace", type: "batiment",
@@ -2134,7 +2218,7 @@ window.addEventListener('DOMContentLoaded', () => {
       qte: () => colonisation.ronronis.niveau,
       // 🛰️ Condition : Vitesse II ET au moins 10 satellites (révèle Ronronis)
       condition: () => upgradesFusee.plasma && nbSatellites >= 10 && !colonisation.ronronis.enVoyage,
-      action: () => { lancerFuseeColonisation('ronronis', 14); }
+      action: () => { lancerFuseeColonisation('ronronis', 14); SON_ROCKET.currentTime = 0; SON_ROCKET.play();}
     },
     {
       id: "btn-col-calinous", zone: "infrastructure-espace", type: "batiment",
@@ -2145,7 +2229,7 @@ window.addEventListener('DOMContentLoaded', () => {
       qte: () => colonisation.calinous.niveau,
       // 🛰️ Condition : Vitesse III ET au moins 15 satellites (révèle la Ceinture Calinous)
       condition: () => upgradesFusee.hyperpropulsion && nbSatellites >= 15 && !colonisation.calinous.enVoyage,
-      action: () => { lancerFuseeColonisation('calinous', 20); }
+      action: () => { lancerFuseeColonisation('calinous', 20); SON_ROCKET.currentTime = 0; SON_ROCKET.play();}
     },
     {
       id: "btn-col-sardinia", zone: "infrastructure-espace", type: "batiment",
@@ -2156,7 +2240,7 @@ window.addEventListener('DOMContentLoaded', () => {
       qte: () => colonisation.sardinia.niveau,
       // 🛰️ Condition : Vitesse IV ET au moins 20 satellites (révèle Sardinia)
       condition: () => upgradesFusee.distorsion && nbSatellites >= 20 && !colonisation.sardinia.enVoyage,
-      action: () => { lancerFuseeColonisation('sardinia', 40); }
+      action: () => { lancerFuseeColonisation('sardinia', 40); SON_ROCKET.currentTime = 0; SON_ROCKET.play();}
     },
 
     {
@@ -2164,21 +2248,21 @@ window.addEventListener('DOMContentLoaded', () => {
       titre: () => "🛡️ Blindage en Coque Stellaire", desc: () => "Résiste aux débris spatiaux à très haute vitesse.",
       prix: () => ({ roches: 25000, pierre: 5000000 }), achete: () => elementsInterstellaires.coque,
       condition: () => plansInterstellairesDebloques && etatFusee.lancee && !elementsInterstellaires.coque,
-      action: () => { elementsInterstellaires.coque = true; verifierLancementInterstellaire(); }
+      action: () => { elementsInterstellaires.coque = true; verifierLancementInterstellaire(); SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-inter-res", zone: "interstellaire-boutique", type: "amelioration", unique: true,
       titre: () => "🔋 Réservoir à Antimatière", desc: () => "Isole magnétiquement l'énergie pure de Dyson.",
       prix: () => ({ roches: 50000, bois: 10000000 }), achete: () => elementsInterstellaires.reservoir,
       condition: () => plansInterstellairesDebloques && etatFusee.lancee && !elementsInterstellaires.reservoir,
-      action: () => { elementsInterstellaires.reservoir = true; verifierLancementInterstellaire(); }
+      action: () => { elementsInterstellaires.reservoir = true; verifierLancementInterstellaire(); SON_BUILDING.currentTime = 0; SON_BUILDING.play();}
     },
     {
       id: "btn-inter-prop", zone: "interstellaire-boutique", type: "amelioration", unique: true,
       titre: () => "🌌 Hyper-Propulseur Quantique", desc: () => "Moteur à distorsion pour le saut hyperespace.",
       prix: () => ({ roches: 100000, energie: 50000000, connaissance: 10000 }), achete: () => elementsInterstellaires.propulseur,
       condition: () => plansInterstellairesDebloques && etatFusee.lancee && !elementsInterstellaires.propulseur,
-      action: () => { elementsInterstellaires.propulseur = true; verifierLancementInterstellaire(); }
+      action: () => { elementsInterstellaires.propulseur = true; verifierLancementInterstellaire();SON_BUILDING.currentTime = 0; SON_BUILDING.play(); }
     },
 
     // --- ARMEMENT ET MOTEURS (Onglet Voyage Final) ---
@@ -2190,7 +2274,8 @@ window.addEventListener('DOMContentLoaded', () => {
       condition: () => voyageDemarre,
       action: () => { 
         if (!window.nbLasersManuels) window.nbLasersManuels = 0;
-        window.nbLasersManuels++; 
+        window.nbLasersManuels++;
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
       }
     },
     {
@@ -2198,21 +2283,21 @@ window.addEventListener('DOMContentLoaded', () => {
       titre: () => "🔫 Tourelle Laser Standard", desc: () => "Tire automatiquement sur les petits débris.",
       prix: () => ({ matiereNoire: calculerPrixExponentiel(10, lasersVoyage.tourelle) }), qte: () => lasersVoyage.tourelle,
       condition: () => voyageDemarre,
-      action: () => { lasersVoyage.tourelle++; }
+      action: () => { lasersVoyage.tourelle++; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-voyage-canon", zone: "ameliorations-voyage", type: "batiment",
       titre: () => "☄️ Canon à Ions Synchrone", desc: () => "Pulvérise les gros astéroïdes à votre place.",
       prix: () => ({ matiereNoire: calculerPrixExponentiel(250, lasersVoyage.canon) }), qte: () => lasersVoyage.canon,
       condition: () => voyageDemarre && lasersVoyage.tourelle >= 5,
-      action: () => { lasersVoyage.canon++; }
+      action: () => { lasersVoyage.canon++; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-voyage-ia", zone: "ameliorations-voyage", type: "batiment",
       titre: () => "🧠 Laser Tactique IA", desc: () => "Scanne et nettoie l'écran des grappes de roches.",
       prix: () => ({ matiereNoire: calculerPrixExponentiel(5000, lasersVoyage.ia) }), qte: () => lasersVoyage.ia,
       condition: () => voyageDemarre && lasersVoyage.canon >= 5,
-      action: () => { lasersVoyage.ia++; }
+      action: () => { lasersVoyage.ia++; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-voyage-collecteur-mn", zone: "ameliorations-voyage", type: "batiment", unique: false,
@@ -2221,7 +2306,7 @@ window.addEventListener('DOMContentLoaded', () => {
       prix: () => ({ matiereNoire: calculerPrixExponentiel(1000, lvlVoyageMoissonneurVide) }), qte: () => lvlVoyageMoissonneurVide,
       // 🌟 NOUVELLE CONDITION : Débloqué dès qu'on a au moins 5 tourelles lasers
       condition: () => voyageDemarre && lasersVoyage.tourelle >= 5,
-      action: () => { lvlVoyageMoissonneurVide++; }
+      action: () => { lvlVoyageMoissonneurVide++; SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();}
     },
     {
       id: "btn-voyage-opti", zone: "ameliorations-voyage", type: "batiment", unique: false,
@@ -2231,6 +2316,7 @@ window.addEventListener('DOMContentLoaded', () => {
       action: () => { 
         lvlVoyageOpti++; 
         vitesseLumierePct = Math.min(100, Math.round((vitesseLumierePct + 1) * 100) / 100); 
+        SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
       }
     },
     {
@@ -2242,6 +2328,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (vitesseLumierePct < 100) {
           lvlVoyageDeflecteur++; 
           vitesseLumierePct = Math.min(100, Math.round((vitesseLumierePct + 2) * 100) / 100); 
+          SON_UPGRADE.currentTime = 0; SON_UPGRADE.play();
         }
       }
     },
@@ -2253,7 +2340,8 @@ window.addEventListener('DOMContentLoaded', () => {
       action: () => { 
         if (vitesseLumierePct < 100) {
           lvlVoyageProcesseur++; 
-          vitesseLumierePct = Math.min(100, Math.round((vitesseLumierePct + 5) * 100) / 100); 
+          vitesseLumierePct = Math.min(100, Math.round((vitesseLumierePct + 5) * 100) / 100);
+          SON_UPGRADE.currentTime = 0; SON_UPGRADE.play(); 
         }
       }
     },
@@ -2329,7 +2417,7 @@ function mettreAjourInterface() {
     
     if (ongletActif === 'Traduction') {
       if (blocRessourcesGlobal) blocRessourcesGlobal.style.setProperty('display', 'none', 'important');
-      if (barreHorlogeGlobale) barreHorlogeGlobale.style.setProperty('display', 'none', 'important');
+      if (barreHorlogeGlobale) barreHorlogeGlobale.style.setProperty('display', 'flex', 'important');
       return; // 🛑 On stoppe ici
     } else {
       if (blocRessourcesGlobal) blocRessourcesGlobal.style.setProperty('display', 'flex', 'important');
@@ -2849,6 +2937,12 @@ function mettreAjourInterface() {
       }
 
       else if (nom === 'Espace') {
+        
+        if (premiereFoisOngletEspace){
+          premiereFoisOngletEspace = false;
+          changerMusiqueTemporaire("sons/ambiance/outerwild.mp3");
+        }
+
         if (blocRessources) {
           blocRessources.style.display = 'flex';
           blocRessources.style.background = 'transparent';
@@ -2890,6 +2984,11 @@ function mettreAjourInterface() {
       }
 
       else if (nom === 'Voyage Final') {
+        if (premiereFoisOngletVoyage){
+          premiereFoisOngletVoyage = false;
+          changerMusiqueTemporaire("sons/ambiance/resurrection.mp3");
+        }
+
         if (blocRessources) {
           blocRessources.style.display = 'flex';
           blocRessources.style.background = 'transparent';
@@ -3013,7 +3112,10 @@ function mettreAjourInterface() {
       }
     });
     if (sansErreur) {
+      SON_SUCCES.currentTime = 0;
+      SON_SUCCES.play();
       document.body.classList.add('traduit');
+      avancerCalendrierVirtuel(0);
       btnTradGlobale.textContent = "✅ Traduction intégrée avec succès !";
       btnTradGlobale.setAttribute('disabled', 'true');
       btnTradGlobale.style.borderColor = '#3d4146';
@@ -3026,6 +3128,8 @@ function mettreAjourInterface() {
         grilleCHA.appendChild(boite);
       });
     } else {
+      SON_ECHEC.currentTime = 0;
+      SON_ECHEC.play();
       btnTradGlobale.textContent = "❌ Erreurs détectées dans la matrice. Corrigez les cases rouges !";
       btnTradGlobale.style.borderColor = '#ff4d4d';
     }
@@ -3175,7 +3279,9 @@ function mettreAjourInterface() {
           if (!plansInterstellairesDebloques) {
             plansInterstellairesDebloques = true;
             ouvrirNotificationCHA("Plan débloqué","Après avoir vu de vos propres yeux l'Étoile, vous débloquez les plans de la fusée interstellaire !");
-            mettreAjourInterface(); 
+            mettreAjourInterface();
+            SON_REUSSITE_ETOILE.currentTime = 0;
+            SON_REUSSITE_ETOILE.play(); 
           } else {
             ouvrirNotificationCHA("Plan déjà débloqué","Les plans de la fusée interstellaire sont déjà enregistrés dans vos banques de données.")
           }
@@ -3315,8 +3421,16 @@ function mettreAjourInterface() {
         let premier = Math.min(etoileSelectionnee.idEtoile, idEtoile);
         let deuxieme = Math.max(etoileSelectionnee.idEtoile, idEtoile);
         const indexLien = constobj.liensJoueur.findIndex(l => l[0] === premier && l[1] === deuxieme);
-        if (indexLien !== -1) constobj.liensJoueur.splice(indexLien, 1);
-        else constobj.liensJoueur.push([premier, deuxieme]);
+        if (indexLien !== -1){
+          constobj.liensJoueur.splice(indexLien, 1);
+          SON_DELIER.currentTime = 0;
+          SON_DELIER.play();
+        }
+        else {
+          constobj.liensJoueur.push([premier, deuxieme]);
+          SON_LIER.currentTime = 0;
+          SON_LIER.play();
+        }
         actualiserPositionsCiel(); 
         verifierVictoireConstellationMulti(constobj);
       }
@@ -3332,6 +3446,8 @@ function mettreAjourInterface() {
     let trieJoueur = constobj.liensJoueur.map(l => [Math.min(l[0], l[1]), Math.max(l[0], l[1])]).sort();
     let gagne = (trieAttendu.length === trieJoueur.length) && trieAttendu.every((l, i) => l[0] === trieJoueur[i][0] && l[1] === trieJoueur[i][1]);
     if (gagne) {
+      SON_REUSSITE_ETOILE.currentTime = 0;
+      SON_REUSSITE_ETOILE.play();
       ressources.connaissance += (1 + nbEtudiants);
       constobj.elementsEtoiles.forEach(e => { if (e.div) e.div.remove(); });
       let idx = constellationsActives.findIndex(c => c.indexPattern === constobj.indexPattern);
@@ -3390,11 +3506,27 @@ function mettreAjourInterface() {
             "Fin du voyage", 
             "Vous êtes sur le point de finir le voyage. Êtes-vous prêt à rentrer en hibernation ?",
             () => {
-              // Action exécutée uniquement si le joueur clique sur le bouton vert
+              // 🎵 1. FADE-OUT TOTAL ET SILENCE DE LA PLAYLIST
+              enModeMusiqueSpeciale = true; // Bloque la relance de la playlist
+              let volumeActuel = musiqueFond ? musiqueFond.volume : 0;
+              const intervalleSilence = setInterval(() => {
+                if (volumeActuel > 0.02 && musiqueFond) {
+                  volumeActuel -= 0.02;
+                  musiqueFond.volume = Math.max(0, volumeActuel);
+                } else {
+                  clearInterval(intervalleSilence);
+                  if (musiqueFond) {
+                    musiqueFond.pause();
+                    musiqueFond.src = ""; // Vide la source pour garantir le silence absolu
+                  }
+                }
+              }, 100); // Atténuation en douceur sur environ 500ms à 1s
+
+              // 🌍 2. Lancement de la cinématique visuelle de fin
               declencherFinDuJeu();
             },
-            "Engager l'hibernation", // Texte du bouton principal (validation)
-            true                     // Active le bouton "Annuler" à côté !
+            "Engager l'hibernation", 
+            true                     
           );
         }
       });
@@ -3402,14 +3534,18 @@ function mettreAjourInterface() {
     
     if (btnPrev) {
       btnPrev.addEventListener('click', () => { 
-        if (pageActuelleLivre > 0) { pageActuelleLivre -= 2; renderPagesLivre(); } 
+        if (pageActuelleLivre > 0) { pageActuelleLivre -= 2; renderPagesLivre(); }
+        SON_PAGE.currentTime = 0;
+        SON_PAGE.play(); 
       });
     }
     
     if (btnNext) {
       btnNext.addEventListener('click', () => { 
         let maxPages = (modeLivre === 'constellations') ? PATTERNS_CONSTELLATIONS.length : pagesLore.length;
-        if (pageActuelleLivre + 2 < maxPages) { pageActuelleLivre += 2; renderPagesLivre(); } 
+        if (pageActuelleLivre + 2 < maxPages) { pageActuelleLivre += 2; renderPagesLivre(); }
+        SON_PAGE.currentTime = 0;
+        SON_PAGE.play();  
       });
     }
     
@@ -3482,6 +3618,12 @@ function mettreAjourInterface() {
         e.stopPropagation();
         p1Selectionne = !p1Selectionne;
         demoEt1.classList.toggle('active', p1Selectionne);
+
+        if (p1Selectionne && p2Selectionne && !etapeRelierFaite) {
+          SON_LIER.currentTime = 0; SON_LIER.play();
+        } else if (!p1Selectionne && etapeRelierFaite && !etapeSupprimerFaite) {
+          SON_DELIER.currentTime = 0; SON_DELIER.play();
+        }
         actualiserEtatDemoTuto();
       });
 
@@ -3489,19 +3631,30 @@ function mettreAjourInterface() {
         e.stopPropagation();
         p2Selectionne = !p2Selectionne;
         demoEt2.classList.toggle('active', p2Selectionne);
+
+        if (p1Selectionne && p2Selectionne && !etapeRelierFaite) {
+          SON_LIER.currentTime = 0; SON_LIER.play();
+        } else if (!p1Selectionne && etapeRelierFaite && !etapeSupprimerFaite) {
+          SON_DELIER.currentTime = 0; SON_DELIER.play();
+        }
+
         actualiserEtatDemoTuto();
       });
     }
     
     if (btnTutoNext) { 
-      btnTutoNext.addEventListener('click', () => { 
+      btnTutoNext.addEventListener('click', () => {
+        SON_ACHAT.currentTime = 0;
+        SON_ACHAT.play(); 
         document.getElementById('etape-tuto-1').style.display = 'none'; 
         document.getElementById('etape-tuto-2').style.display = 'block'; 
       }); 
     }
     
     if (btnTutoClose) { 
-      btnTutoClose.addEventListener('click', () => { 
+      btnTutoClose.addEventListener('click', () => {
+        SON_ACHAT.currentTime = 0;
+        SON_ACHAT.play(); 
         document.getElementById('modal-tuto-spatial').style.display = 'none'; 
       }); 
     }
@@ -3620,7 +3773,10 @@ function mettreAjourInterface() {
       etatFusee.cockpitPose = true;
       document.getElementById('piece-posee-cockpit').style.display = 'block';
     }
-    
+
+    SON_PUZZLE.currentTime = 0;
+    SON_PUZZLE.play();
+
     actualiserMiniJeuFusee(); // Met à jour les pièces au sol et vérifie la fin
   }
 
@@ -3781,6 +3937,8 @@ function mettreAjourInterface() {
 
     if (vRatio === fuseeCibles.ratio && vPuiss === fuseeCibles.puissance && vAngle === fuseeCibles.angle) {
       // === 🚀 SCÉNARIO RÉUSSITE : ENVOL ===
+      SON_ROCKET.currentTime = 0;
+      SON_ROCKET.play();
       etatFusee.lancee = true;
       const zoneJeu = document.querySelector('.zone-jeu');
       if (zoneJeu) zoneJeu.classList.add('shake-camera-active');
@@ -3805,10 +3963,14 @@ function mettreAjourInterface() {
         genererNouvellesCiblesFusee(true);
         mettreAjourInterface();
         ouvrirNotificationCHA("Décollage réussi !","Votre fusée a quitté l'atmosphère avec succès ! L'onglet Espace est débloqué");
+        SON_SUCCES.currentTime = 0;
+        SON_SUCCES.play();
       }, 2500);
 
     } else {
       // === 💥 SCÉNARIO ÉCHEC : EXPLOSION ===
+      SON_EXPLOSION.currentTime = 0;
+      SON_EXPLOSION.play();
       etatFusee.tentatives++;
       const txtTentative = document.getElementById('fusee-tentatives-txt');
       if (txtTentative) txtTentative.textContent = etatFusee.tentatives;
@@ -3829,6 +3991,9 @@ function mettreAjourInterface() {
          if (ecran) ecran.classList.remove('tremblement-erreur');
          explosionImg.remove();
          ouvrirNotificationCHA("BOUM !","Paramètres incorrects. La fusée a explosé sur le pas de tir.");
+         
+         SON_ECHEC.currentTime = 0;
+         SON_ECHEC.play();
   
          etatFusee.piecesAssemblees = 0;
          etatFusee.moteurPose = false;
@@ -3870,9 +4035,20 @@ function mettreAjourInterface() {
     dateVirtuelle.mois = m;
     dateVirtuelle.annee = an;
 
-    const jourCHA = convertirNombreCHA(dateVirtuelle.jour);
-    const anneeCHA = convertirNombreCHA(dateVirtuelle.annee);
-    document.getElementById('txt-date-virtuelle').textContent = `${jourCHA} ${NOMS_MOIS[dateVirtuelle.mois]} ${anneeCHA}`;
+    let jourAffiche = "";
+    let anneeAffiche = "";
+
+    if (document.body.classList.contains('traduit')) {
+      jourAffiche = dateVirtuelle.jour.toString();
+      anneeAffiche = dateVirtuelle.annee.toString();
+    } else {
+      // Sinon, on passe par ta fonction CHA qui convertit proprement en base 5
+      jourAffiche = convertirNombreCHA(dateVirtuelle.jour);
+      anneeAffiche = convertirNombreCHA(dateVirtuelle.annee);
+    }
+
+    // Injection dans la barre d'horloge globale
+    document.getElementById('txt-date-virtuelle').textContent = `${jourAffiche} ${NOMS_MOIS[dateVirtuelle.mois]} ${anneeAffiche}`;
 
     if (nbJours > 0) {
       if (estSautManuel) {
@@ -4412,6 +4588,8 @@ let controlesEspaceConfigures = false;
             ouvrirNotificationCHA("Trajectoire décodée !","L'Étoile Mystère diffuse une onde d'énergie étrange... La compétence 'Happy Hour' est maintenant disponible à l'achat dans l'Observatoire !");
             avancerCalendrierVirtuel(0); // Forcer le rafraîchissement immédiat de l'indice de l'infobulle
             mettreAjourInterface();
+            SON_REUSSITE_ETOILE.currentTime = 0;
+            SON_REUSSITE_ETOILE.play();
           }
         }
       };
@@ -4988,21 +5166,28 @@ let controlesEspaceConfigures = false;
 
     if (btnSecret) {
       btnSecret.addEventListener('click', () => {
-        if (ecranQuestion) {
-          ecranQuestion.style.display = 'flex';
+        // 🎵 LANCEMENT D'UNE MUSIQUE UNIQUE POUR LE SECRET FINAL
+        if (musiqueFond) {
+          musiqueFond.src = "sons/ambiance/prof_layton.mp3"; // 💡 Remplace par ton fichier secret (ex: sons/secret.mp3)
+          musiqueFond.volume = VOLUME_MAX_CIBLE;
+          musiqueFond.onended = null; // Pas de playlist automatique après ce morceau
+          musiqueFond.play().catch(e => console.log("[AUDIO] Musique secrète bloquée."));
+        }
+
+        if (ecranQuestion) { //
+          ecranQuestion.style.display = 'flex'; //
           
-          if (!document.getElementById('btn-retour-secret')) {
-            const btnRetour = document.createElement('button');
-            btnRetour.id = 'btn-retour-secret';
-            btnRetour.textContent = '◀ Retour';
-            // Changer font-family par sans-serif !important 🌟
-            btnRetour.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif !important;";
+          if (!document.getElementById('btn-retour-secret')) { //
+            const btnRetour = document.createElement('button'); //
+            btnRetour.id = 'btn-retour-secret'; //
+            btnRetour.textContent = '◀ Retour'; //
+            btnRetour.style.cssText = "position: absolute; top: 20px; left: 20px; padding: 8px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif !important;"; //
             
-            btnRetour.addEventListener('click', () => {
-              ecranQuestion.style.display = 'none';
-            });
+            btnRetour.addEventListener('click', () => { //
+              ecranQuestion.style.display = 'none'; //
+            }); //
             
-            ecranQuestion.appendChild(btnRetour);
+            ecranQuestion.appendChild(btnRetour); //
           }
         }
       });
@@ -5219,60 +5404,75 @@ let controlesEspaceConfigures = false;
   }
 
   // 💾 Fonction d'enregistrement global modifiée
-  function sauvegarderProgression() {
+  function sauvegarderProgression(estManuel = false) {
     if (!SOUHAITE_SAUVEGARDER) {
+      if (estManuel) console.log("[TEST] Sauvegarde manuelle bloquée par le mode de test.");
       return;
     }
+    
     const donneesDuJeu = {
-      ressources,
-      clics,
-      multiplicateursPassifs,
-      nbBucherons,
-      nbMineurs,
-      nbCentrales,
-      nbEtudiants,
-      nbAstronomes,
-      upgradePierreAchetee,
-      upgradeTradAchetee,
-      upgradeObservAchetee,
-      planCentraleAchete,
-      upgradesActivees,
-      techActivees,
-      etatFusee,
-      // 🌟 SÉCURITÉ AJOUTÉE : Sauvegarde de l'état des upgrades uniques de la fusée !
-      upgradesFusee,
-      dateVirtuelle,
-      joursVirtuelsEcoules,
-      nbSatellites,
-      etapeDyson,
-      colonisation,
-      happyHourAchete,
-      etoileDecouverte,
-      plansInterstellairesDebloques,
-      elementsInterstellaires,
-      lasersVoyage,
-      upgradesVoyage,
-      vitesseLumierePct,
-      voyageDemarre,
-      lvlVoyageOpti,
-      lvlVoyageDeflecteur,
-      lvlVoyageProcesseur,
-      lvlVoyageMoissonneurVide,
-      nbLasersManuels: window.nbLasersManuels || 0,
-      modeFuseeActuel,
-      cielMystereActif,
-      etapeTutoRotateOk,
-      etapeTutoClicOk,
-      tutoObservationFait,
-      estTraduit: document.body.classList.contains('traduit')
+      ressources, //
+      clics, //
+      multiplicateursPassifs, //
+      nbBucherons, //
+      nbMineurs, //
+      nbCentrales, //
+      nbEtudiants, //
+      nbAstronomes, //
+      upgradePierreAchetee, //
+      upgradeTradAchetee, //
+      upgradeObservAchetee, //
+      planCentraleAchete, //
+      upgradesActivees, //
+      techActivees, //
+      etatFusee, //
+      upgradesFusee, //
+      dateVirtuelle, //
+      joursVirtuelsEcoules, //
+      nbSatellites, //
+      etapeDyson, //
+      colonisation, //
+      happyHourAchete, //
+      etoileDecouverte, //
+      plansInterstellairesDebloques, //
+      elementsInterstellaires, //
+      lasersVoyage, //
+      upgradesVoyage, //
+      vitesseLumierePct, //
+      voyageDemarre, //
+      lvlVoyageOpti, //
+      lvlVoyageDeflecteur, //
+      lvlVoyageProcesseur, //
+      lvlVoyageMoissonneurVide, //
+      nbLasersManuels: window.nbLasersManuels || 0, //
+      modeFuseeActuel, //
+      cielMystereActif, //
+      etapeTutoRotateOk, //
+      etapeTutoClicOk, //
+      tutoObservationFait, //
+      estTraduit: document.body.classList.contains('traduit') //
     };
 
-    const chaineDonnees = JSON.stringify(donneesDuJeu);
-    const hashSecurite = genererHashSauvegarde(chaineDonnees);
+    const chaineDonnees = JSON.stringify(donneesDuJeu); //
+    const hashSecurite = genererHashSauvegarde(chaineDonnees); //
 
-    localStorage.setItem('cha_save_data', chaineDonnees);
-    localStorage.setItem('cha_save_hash', hashSecurite);
-    console.log("[SAUVEGARDE] Partie enregistrée automatiquement et sécurisée.");
+    localStorage.setItem('cha_save_data', chaineDonnees); //
+    localStorage.setItem('cha_save_hash', hashSecurite); //
+    console.log("[SAUVEGARDE] Partie enregistrée automatiquement et sécurisée."); //
+
+    // 🌟 FENÊTRE FLOTTANTE DE VALIDATION (TOAST NOTIFICATION)
+    const toast = document.createElement('div');
+    toast.style.cssText = "position: fixed; bottom: 20px; right: 20px; background: #1c1e21; border: 2px solid var(--accent); color: white; padding: 12px 20px; border-radius: 6px; font-weight: bold; font-family: sans-serif !important; z-index: 99999; box-shadow: 0 4px 15px rgba(0,0,0,0.5); animation: popNotifEntree 0.2s ease-out;";
+    toast.innerHTML = estManuel ? "💾 Sauvegarde manuelle effectuée !" : "⏳ Sauvegarde automatique effectuée !";
+    
+    document.body.appendChild(toast);
+
+    // Disparaît au bout de 2 secondes
+    setTimeout(() => {
+      toast.style.transition = "opacity 0.3s ease";
+      toast.style.opacity = "0";
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
   }
 
   // 📂 Fonction de chargement globale et unifiée
@@ -5457,15 +5657,29 @@ let controlesEspaceConfigures = false;
   if (intervalleSauvegardeAuto) clearInterval(intervalleSauvegardeAuto);
   intervalleSauvegardeAuto = setInterval(sauvegarderProgression, 60000);
 
-  // 🌟 INITIALISATION DU LECTEUR DE MUSIQUE AU PREMIER CLIC SUR LE JEU
+// 🌟 INITIALISATION DU LECTEUR DE MUSIQUE AU PREMIER CLIC SUR LE JEU
   const activerMusiqueAuPremierClic = () => {
-    lancerPlaylistAleatoire();
-    // On retire l'écouteur pour ne pas re-déclencher la fonction à chaque clic !
-    window.removeEventListener('click', activerMusiqueAuPremierClic);
+    lancerPlaylistAleatoire(); //
+    window.removeEventListener('click', activerMusiqueAuPremierClic); //
   };
-  window.addEventListener('click', activerMusiqueAuPremierClic);
+  window.addEventListener('click', activerMusiqueAuPremierClic); //
   
-});
+  // 💾 ENCASTRÉ ICI DANS LE DOMCONTENTLOADED POUR ÉVITER LE PLANTE REFERENCEERROR
+  const btnSauvegarde = document.getElementById('btn-sauvegarde-manuelle');
+  if (btnSauvegarde) {
+    btnSauvegarde.addEventListener('mouseenter', () => btnSauvegarde.style.background = '#34373b'); //
+    btnSauvegarde.addEventListener('mouseleave', () => btnSauvegarde.style.background = '#2a2c2f'); //
+    
+    btnSauvegarde.addEventListener('click', () => {
+      if (typeof SON_ACHAT !== 'undefined') { //
+        SON_ACHAT.currentTime = 0; //
+        SON_ACHAT.play().catch(e => {}); //
+      }
+      sauvegarderProgression(true); // Appelle maintenant proprement avec true !
+    });
+  }
+
+}); // 🔓 Fin du DOMContentLoaded
 </script>
 
 <div id="etoile-tooltip" class="custom-tooltip"></div>
