@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHA</title>
+  <link rel="icon" type="image/png" href="images/icone512x512.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #ffffff;
+      color: #000000;            
+      font-family: 'Clash Display', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    .verif-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .verif-box h2 {
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+
+    .input-code {
+      padding: 12px;
+      font-size: 20px;
+      border: 2px solid #000000;
+      border-radius: 6px;
+      text-align: center;
+      width: 200px;
+      outline: none;
+      font-family: 'Clash Display', sans-serif;
+    }
+
+    .btn-valider {
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      background: #000000;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Clash Display', sans-serif;
+      transition: opacity 0.2s;
+    }
+    .btn-valider:hover { opacity: 0.8; }
+
+    .texte-indice {
+      font-size: 14px;
+      color: #666666;
+      margin-top: 8px;
+      font-weight: 300;
+    }
+    .bloc-texte {
+      display: none; 
+      width: 100%;
+      max-width: 800px;
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+      text-align: justify;
+    }
+    .erreur-secoue { animation: secoue 0.35s; border-color: #ff4d4d !important; }
+    @keyframes secoue {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="verif-box" id="ecran-verif">
+    <h2>Protocole de décryptage final</h2>
+    <div class="texte-indice">(t'es sûre que tu n'as pas raté un code ?)</div>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" class="input-code" id="code-saisi" placeholder="Entrer le code...">
+    <button class="btn-valider" id="btn-valider-code">Valider</button>
+  </div>
+
+  <div class="bloc-texte" id="zone-texte-final"></div>
+
+  <script src="fin_script_miaou.js"></script>
+</body>
+</html>
